@@ -1,0 +1,21 @@
+schema: spec-driven
+context: |
+  Forga is a standalone Java 17 embedded authorization SDK.
+  It provides domain-neutral RBAC, ReBAC, and ABAC evaluation without owning business data.
+  Host applications own relationship persistence and expose forward, reverse, and batch
+  access through resolver interfaces. The core must not contain tenant-specific concepts.
+  Integrations must remain optional and disabling Forga must preserve ordinary business queries.
+
+rules:
+  proposal:
+    - State affected capabilities and explicit non-goals.
+    - Record decisions that affect host integration or relationship ownership.
+  specs:
+    - Use MUST or SHALL requirements with testable scenarios.
+    - Specify failure, limits, pagination, consistency, and disabled behavior.
+  design:
+    - Keep dependencies directed from integrations toward domain-neutral core contracts.
+    - Explain how all collection APIs avoid N+1 queries and unbounded graph traversal.
+  tasks:
+    - Break work into small verifiable steps.
+    - Include Gradle tests and Checkstyle validation.

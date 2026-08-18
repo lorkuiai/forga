@@ -1,0 +1,9 @@
+dependencies {
+  api project(':forga-core')
+  api project(':forga-resolver-api')
+  api project(':forga-query')
+  implementation project(':forga-mybatis')
+  compileOnly 'org.springframework.boot:spring-boot-autoconfigure:3.4.4'
+  compileOnly 'com.baomidou:mybatis-plus-extension:3.5.12'
+  testImplementation 'com.baomidou:mybatis-plus-extension:3.5.12'
+}
