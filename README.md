@@ -182,6 +182,44 @@ host request -> subject + active scope -> query constraint -> parameterized SQL
 Unknown fields, unsafe identifiers, or unsupported constraint nodes are rejected before SQL
 execution.
 
+For ReBAC list pages, prefer an authorized rowset plan instead of per-row `check` calls. The host
+maps a business resource and an authorization rowset, then Forga generates one SQL statement that
+joins them before filtering, ordering, and pagination:
+
+```text
+business_resource
+JOIN authorized_rowset ON resource.id = authorized_rowset.object_id
+WHERE authorized_rowset.subject_id = #{forga.parameters.subject}
+ORDER BY authorized_rowset.rank DESC, resource.created_at DESC
+LIMIT ...
+```
+
+The authorization rowset can be a host table, view, materialized view, or queryable relation
+projection. It can expose fields such as relation, scope, rank, source, or assignment status.
+Those fields can be selected with stable aliases and used for ordering before pagination:
+
+```java
+AuthorizedListQuery listQuery =
+    QueryConstraintGenerator.authorizedRowset(
+        taskMapping,
+        accessMapping,
+        "id",
+        "object_id",
+        QueryConstraint.predicate(
+            accessMapping.field("subject_id"),
+            PredicateOperator.EQUALS,
+            new QueryParameter("subject", QueryValueType.STRING)),
+        List.of(new QueryProjection(accessMapping.field("relation"), "forga_relation")),
+        List.of(new QueryOrdering(accessMapping.field("rank"), QuerySortDirection.DESC)));
+
+MyBatisAuthorizationBoundary boundary =
+    MyBatisAuthorizationBoundary.list("task-list", listQuery);
+```
+
+This keeps pagination correct because the database filters and sorts the authorized rowset before
+returning a page. It also keeps relationship context available for the UI without loading a page of
+business rows and authorizing each row separately.
+
 ## Scope And Concurrent Roles
 
 `forga-scope` handles applications where one subject can operate under multiple authorization

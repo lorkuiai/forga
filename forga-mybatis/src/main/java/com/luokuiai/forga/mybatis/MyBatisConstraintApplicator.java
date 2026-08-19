@@ -38,8 +38,15 @@ public final class MyBatisConstraintApplicator {
     if (!enabled || boundary.isEmpty()) {
       return new MyBatisBoundSql(original, List.of());
     }
-    MyBatisBoundConstraint constraint = translator.translate(boundary.orElseThrow().constraint());
-    String separator = original.toLowerCase(Locale.ROOT).contains(" where ") ? " AND " : " WHERE ";
+    MyBatisAuthorizationBoundary authorizationBoundary = boundary.orElseThrow();
+    if (authorizationBoundary.authorizedList().isPresent()) {
+      return translator.translateAuthorizedList(
+          original, authorizationBoundary.authorizedList().orElseThrow());
+    }
+    MyBatisBoundConstraint constraint =
+        translator.translate(authorizationBoundary.predicate().orElseThrow());
+    String separator =
+        original.toLowerCase(Locale.ROOT).contains(" where ") ? " AND " : " WHERE ";
     return new MyBatisBoundSql(
         original + separator + "(" + constraint.sql() + ")", constraint.parameters());
   }
