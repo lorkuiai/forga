@@ -30,6 +30,7 @@ Use Forga when an application needs authorization such as:
 - `forga-mybatis`: MyBatis SQL translation and statement interception helpers.
 - `forga-spring-boot-starter`: opt-in runtime assembly and MyBatis auto-configuration.
 - `forga-scope`: scope switching, active-scope checks, acting context, and scope query helpers.
+- `forga-spring-web`: resource-code annotations and Spring MVC interceptor integration.
 
 ## Design Model
 
@@ -299,6 +300,69 @@ ScopedPermissionDecision decision =
 
 The service first verifies that the subject can enter the active scope, then evaluates the requested
 resource permission.
+
+## Spring Web Resource Annotations
+
+Business systems usually already have a resource catalog and controller permissions. Forga's Spring
+Web integration keeps that shape instead of forcing endpoints to call SDK internals directly.
+
+```java
+public final class AdminResources {
+  public static final String MEETING_VIEW = "rsc:meeting:view";
+  public static final String MEETING_MAINTAIN = "rsc:meeting:maintain";
+
+  private AdminResources() {}
+}
+```
+
+```java
+@RequiresResource(AdminResources.MEETING_VIEW)
+public MeetingDetail getMeeting(String meetingId) {
+  ...
+}
+```
+
+The resource code remains host-defined. The host provides one adapter that maps the code and current
+request context to Forga checks:
+
+```java
+ResourceCheckAdapter adapter =
+    invocation -> {
+      ResourceRule rule = resourceCatalog.require(invocation.resourceCode());
+      CheckDecision decision =
+          evaluator.check(
+              new CheckRequest(
+                  rule.objectRef(invocation),
+                  rule.permission(),
+                  subjectProvider.currentSubject()));
+      return ResourceAuthorizationDecision.from(invocation.resourceCode(), decision);
+    };
+```
+
+Register the service and MVC interceptor in application configuration:
+
+```java
+@Bean
+ResourceAuthorizationService resourceAuthorizationService(ResourceCheckAdapter adapter) {
+  return new ResourceAuthorizationService(adapter);
+}
+
+@Override
+public void addInterceptors(InterceptorRegistry registry) {
+  registry.addInterceptor(new RequiresResourceInterceptor(resourceAuthorizationService));
+}
+```
+
+For service-layer code or non-MVC entry points, use the same facade:
+
+```java
+resourceAuthorizationService.requireResource(AdminResources.MEETING_MAINTAIN);
+```
+
+`@RequiresResource(RequiresResource.NONE)` explicitly marks an endpoint as requiring no resource
+permission. If the module is not registered as an MVC interceptor, annotations have no runtime
+effect. Collection authorization should still use query constraints or MyBatis rowsets so list
+pages are filtered, sorted, and paginated in SQL rather than checked row by row.
 
 ## MyBatis And Spring Integration
 

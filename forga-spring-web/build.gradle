@@ -1,0 +1,8 @@
+dependencies {
+  api project(':forga-core')
+  compileOnly 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+  compileOnly 'org.springframework:spring-webmvc:6.2.5'
+  testImplementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+  testImplementation 'org.springframework:spring-webmvc:6.2.5'
+  testImplementation 'org.springframework:spring-test:6.2.5'
+}
