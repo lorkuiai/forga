@@ -1,8 +1,8 @@
 package com.luokuiai.forga.spring;
 
+import com.luokuiai.forga.core.context.AuthenticatedSubjectProvider;
+import com.luokuiai.forga.core.context.AuthorizationAttributesProvider;
 import com.luokuiai.forga.mybatis.ForgaMyBatisInterceptor;
-import com.luokuiai.forga.mybatis.ForgaRequestAttributesProvider;
-import com.luokuiai.forga.mybatis.ForgaSubjectProvider;
 import com.luokuiai.forga.mybatis.MyBatisStatementRegistry;
 import java.util.Objects;
 
@@ -17,8 +17,8 @@ import java.util.Objects;
 public record ForgaMyBatisIntegrationComponents(
     ForgaMyBatisInterceptor interceptor,
     MyBatisStatementRegistry statements,
-    ForgaSubjectProvider subjects,
-    ForgaRequestAttributesProvider attributes) {
+    AuthenticatedSubjectProvider subjects,
+    AuthorizationAttributesProvider attributes) {
 
   /**
    * Creates MyBatis integration components.

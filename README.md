@@ -27,9 +27,11 @@ Use Forga when an application needs authorization such as:
   and `listObjects` evaluation, plus host-owned relationship and attribute resolver contracts.
 - `forga-query`: typed query constraints for pushing authorization into host queries.
 - `forga-mybatis`: MyBatis SQL translation and statement interception helpers.
+- `forga-sa-token`: optional Sa-Token authenticated-subject adapter.
+- `forga-spring-security`: optional Spring Security authenticated-subject adapter.
 - `forga-spring-boot-starter`: opt-in runtime assembly and MyBatis auto-configuration.
 - `forga-scope`: scope switching, active-scope checks, acting context, and scope query helpers.
-- `forga-spring-web`: resource-code annotations and Spring MVC interceptor integration.
+- `forga-spring-web`: endpoint permission resolution and Spring MVC interceptor integration.
 
 ## Design Model
 
@@ -300,68 +302,79 @@ ScopedPermissionDecision decision =
 The service first verifies that the subject can enter the active scope, then evaluates the requested
 resource permission.
 
-## Spring Web Resource Annotations
+## Permission Catalog
 
-Business systems usually already have a resource catalog and controller permissions. Forga's Spring
-Web integration keeps that shape instead of forcing endpoints to call SDK internals directly.
+Business modules declare stable permissions independently of where those permissions are used:
 
 ```java
-public final class AdminResources {
-  public static final String MEETING_VIEW = "rsc:meeting:view";
-  public static final String MEETING_MAINTAIN = "rsc:meeting:maintain";
-
-  private AdminResources() {}
-}
+PermissionDefinition view =
+    new PermissionDefinition(
+        new PermissionRef("meeting:view"),
+        "View meeting",
+        "meeting");
+PermissionCatalog catalog =
+    PermissionCatalog.fromContributors(List.of(() -> List.of(view)));
 ```
 
+Hosts implement `PermissionCatalogSynchronizer` to upsert this catalog into their own permission
+tables. When Forga is enabled, the Spring Boot starter invokes the configured synchronizer after
+catalog assembly. Forga does not define tables, deletion rules, role assignments, or administration
+flows. Catalog entries do not have to appear on a Web endpoint, so jobs and message consumers can
+share the same assignable permissions.
+
+## Spring Web Permission Resolution
+
+Business systems can use the optional Forga annotation:
+
 ```java
-@RequiresResource(AdminResources.MEETING_VIEW)
+@RequiresPermission("meeting:view")
 public MeetingDetail getMeeting(String meetingId) {
-  ...
+  return meetingService.getMeeting(meetingId);
 }
 ```
 
-The resource code remains host-defined. The host provides one adapter that maps the code and current
-request context to Forga checks:
+Public handlers use Jakarta `@PermitAll`. An unannotated handler is unresolved and fails closed by
+default. Hosts that already have permission annotations or centralized route metadata implement
+`EndpointPermissionResolver` instead of changing controllers.
+
+The host authorizer maps the resolved permission and request context into Forga checks:
 
 ```java
-ResourceCheckAdapter adapter =
-    invocation -> {
-      ResourceRule rule = resourceCatalog.require(invocation.resourceCode());
-      CheckDecision decision =
-          evaluator.check(
-              new CheckRequest(
-                  rule.objectRef(invocation),
-                  rule.permission(),
-                  subjectProvider.currentSubject()));
-      return ResourceAuthorizationDecision.from(invocation.resourceCode(), decision);
-    };
+EndpointPermissionAuthorizer authorizer =
+    invocation -> hostAuthorization.authorize(invocation);
+
+EndpointPermissionInterceptor interceptor =
+    new EndpointPermissionInterceptor(
+        new DefaultEndpointPermissionResolver(),
+        authorizer);
 ```
 
-Register the service and MVC interceptor in application configuration:
+Register the interceptor once in Spring MVC configuration. Controllers, services, and mappers never
+call Forga authorization methods explicitly. Collection authorization remains in MyBatis query
+constraints so filtering, sorting, and pagination happen in SQL.
 
-```java
-@Bean
-ResourceAuthorizationService resourceAuthorizationService(ResourceCheckAdapter adapter) {
-  return new ResourceAuthorizationService(adapter);
-}
+## Authentication Adapters
 
-@Override
-public void addInterceptors(InterceptorRegistry registry) {
-  registry.addInterceptor(new RequiresResourceInterceptor(resourceAuthorizationService));
-}
+Authentication frameworks provide identity only. Forga remains the decision point for RBAC, ABAC,
+and ReBAC, so Sa-Token permission lists and Spring Security granted authorities are not consumed as
+business authorization decisions.
+
+For Sa-Token, add `forga-sa-token`, expose the selected `StpLogic` as a bean, and configure the
+subject type:
+
+```properties
+forga.authentication.subject-type=account
 ```
 
-For service-layer code or non-MVC entry points, use the same facade:
+For Spring Security, add `forga-spring-security` and configure the subject type:
 
-```java
-resourceAuthorizationService.requireResource(AdminResources.MEETING_MAINTAIN);
+```properties
+forga.authentication.subject-type=account
 ```
 
-`@RequiresResource(RequiresResource.NONE)` explicitly marks an endpoint as requiring no resource
-permission. If the module is not registered as an MVC interceptor, annotations have no runtime
-effect. Collection authorization should still use query constraints or MyBatis rowsets so list
-pages are filtered, sorted, and paginated in SQL rather than checked row by row.
+The starter discovers `AuthenticatedSubjectProvider` beans without an adapter-selection property.
+Enabled Forga integration requires exactly one provider and refuses to start when none or multiple
+providers exist. A host that supplies its own provider does not add either adapter module.
 
 ## MyBatis And Spring Integration
 
@@ -377,8 +390,13 @@ Important integration behavior:
 - Only allowlisted fields are translated into SQL.
 
 `forga-spring-boot-starter` assembles optional runtime components and MyBatis integration when
-enabled. Applications still provide host-specific resolvers, subject providers, active-scope
+enabled. Applications still provide host-specific resolvers, authorization attributes, active-scope
 providers, and statement mappings.
+
+Snapshot migration: `ForgaSubjectProvider` and `ForgaRequestAttributesProvider` moved to the core
+`AuthenticatedSubjectProvider` and `AuthorizationAttributesProvider` contracts. `@RequiresResource`
+and `ResourceAuthorizationService` were removed; use `@RequiresPermission`, `@PermitAll`, or a host
+endpoint resolver.
 
 ## Consistency And Limits
 
