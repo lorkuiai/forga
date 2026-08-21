@@ -15,8 +15,7 @@ class ForgaSpringSecurityAutoConfigurationTest {
 
   @Test
   void assemblesSpringSecurityProvider() {
-    contextRunner
-        .withPropertyValues("forga.authentication.subject-type=operator")
-        .run(context -> assertThat(context).hasSingleBean(AuthenticatedSubjectProvider.class));
+    contextRunner.run(
+        context -> assertThat(context).hasSingleBean(AuthenticatedSubjectProvider.class));
   }
 }

@@ -13,30 +13,24 @@ import org.springframework.security.core.context.SecurityContextHolder;
 public final class SpringSecurityAuthenticatedSubjectProvider
     implements AuthenticatedSubjectProvider {
 
+  private static final String USER_SUBJECT_TYPE = "user";
+
   private final Supplier<Authentication> authenticationSupplier;
 
-  private final String subjectType;
-
-  /**
-   * Creates a provider backed by the current Spring Security context.
-   *
-   * @param subjectType caller-defined Forga subject type
-   */
-  public SpringSecurityAuthenticatedSubjectProvider(String subjectType) {
-    this(() -> SecurityContextHolder.getContext().getAuthentication(), subjectType);
+  /** Creates a provider backed by the current Spring Security context. */
+  public SpringSecurityAuthenticatedSubjectProvider() {
+    this(() -> SecurityContextHolder.getContext().getAuthentication());
   }
 
   /**
    * Creates a provider with an injectable authentication source.
    *
    * @param authenticationSupplier authentication source
-   * @param subjectType caller-defined Forga subject type
    */
   public SpringSecurityAuthenticatedSubjectProvider(
-      Supplier<Authentication> authenticationSupplier, String subjectType) {
+      Supplier<Authentication> authenticationSupplier) {
     this.authenticationSupplier =
         Objects.requireNonNull(authenticationSupplier, "authentication supplier is required");
-    this.subjectType = validateSubjectType(subjectType);
   }
 
   @Override
@@ -47,10 +41,6 @@ public final class SpringSecurityAuthenticatedSubjectProvider
         || authentication instanceof AnonymousAuthenticationToken) {
       return Optional.empty();
     }
-    return Optional.of(new SubjectRef(subjectType, authentication.getName()));
-  }
-
-  private static String validateSubjectType(String subjectType) {
-    return new SubjectRef(subjectType, "validation").type();
+    return Optional.of(new SubjectRef(USER_SUBJECT_TYPE, authentication.getName()));
   }
 }

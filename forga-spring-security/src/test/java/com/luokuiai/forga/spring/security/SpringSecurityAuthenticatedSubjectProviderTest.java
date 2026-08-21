@@ -16,9 +16,9 @@ class SpringSecurityAuthenticatedSubjectProviderTest {
     TestingAuthenticationToken authentication =
         new TestingAuthenticationToken("alice", "ignored", "business:permission");
     SpringSecurityAuthenticatedSubjectProvider provider =
-        new SpringSecurityAuthenticatedSubjectProvider(() -> authentication, "account");
+        new SpringSecurityAuthenticatedSubjectProvider(() -> authentication);
 
-    assertThat(provider.currentSubject()).contains(new SubjectRef("account", "alice"));
+    assertThat(provider.currentSubject()).contains(new SubjectRef("user", "alice"));
   }
 
   @Test
@@ -28,13 +28,11 @@ class SpringSecurityAuthenticatedSubjectProviderTest {
     unauthenticated.setAuthenticated(false);
 
     SpringSecurityAuthenticatedSubjectProvider missing =
-        new SpringSecurityAuthenticatedSubjectProvider(() -> null, "account");
+        new SpringSecurityAuthenticatedSubjectProvider(() -> null);
 
-    assertThat(missing.currentSubject())
-        .isEmpty();
+    assertThat(missing.currentSubject()).isEmpty();
     assertThat(
-            new SpringSecurityAuthenticatedSubjectProvider(
-                    () -> unauthenticated, "account")
+            new SpringSecurityAuthenticatedSubjectProvider(() -> unauthenticated)
                 .currentSubject())
         .isEmpty();
   }
@@ -46,7 +44,7 @@ class SpringSecurityAuthenticatedSubjectProviderTest {
             "key", "anonymous", List.of(new SimpleGrantedAuthority("ROLE_ANONYMOUS")));
 
     SpringSecurityAuthenticatedSubjectProvider provider =
-        new SpringSecurityAuthenticatedSubjectProvider(() -> anonymous, "account");
+        new SpringSecurityAuthenticatedSubjectProvider(() -> anonymous);
 
     assertThat(provider.currentSubject()).isEmpty();
   }

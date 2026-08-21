@@ -43,9 +43,9 @@ non-persistence integrations require the same subject independently of SQL.
 
 ### Authentication adapters expose identity only
 
-`forga-sa-token` accepts an injectable `StpLogic` and maps its login id to a caller-configured
-subject type. `forga-spring-security` maps an authenticated, non-anonymous `Authentication` to a
-subject. Both modules depend toward core and expose no permission-check methods.
+`forga-sa-token` accepts an injectable `StpLogic` and maps its login id to a `user` subject.
+`forga-spring-security` maps an authenticated, non-anonymous `Authentication` to the same canonical
+subject type. Both modules depend toward core and expose no permission-check methods.
 
 Alternative: implement Sa-Token `StpInterface` or consume Spring `GrantedAuthority`. Rejected
 because flat framework authorities cannot express request attributes, object relationships, or

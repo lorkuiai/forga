@@ -14,11 +14,11 @@ without depending on a Web, authentication, or persistence framework.
 
 ### Requirement: Sa-Token authentication adapter
 Forga SHALL provide an optional Sa-Token adapter that maps an injectable `StpLogic` login id to a
-caller-defined subject type without evaluating Sa-Token permissions or roles.
+canonical `user` subject without evaluating Sa-Token permissions or roles.
 
 #### Scenario: Sa-Token login maps to subject
 - **WHEN** the selected `StpLogic` reports an authenticated login id
-- **THEN** the adapter returns a `SubjectRef` containing the configured type and login id
+- **THEN** the adapter returns a `SubjectRef` containing type `user` and the login id
 
 #### Scenario: Sa-Token login is absent
 - **WHEN** the selected `StpLogic` reports no login
@@ -26,12 +26,11 @@ caller-defined subject type without evaluating Sa-Token permissions or roles.
 
 ### Requirement: Spring Security authentication adapter
 Forga SHALL provide an optional Spring Security adapter that maps an authenticated, non-anonymous
-`Authentication` to a caller-defined subject type without making decisions from granted
-authorities.
+`Authentication` to a canonical `user` subject without making decisions from granted authorities.
 
 #### Scenario: Spring authentication maps to subject
 - **WHEN** the security context contains an authenticated non-anonymous principal
-- **THEN** the adapter returns a `SubjectRef` using the configured type and authentication name
+- **THEN** the adapter returns a `SubjectRef` using type `user` and the authentication name
 
 #### Scenario: Anonymous authentication is not a subject
 - **WHEN** the security context is empty, unauthenticated, or anonymous

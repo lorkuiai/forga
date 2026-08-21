@@ -44,7 +44,7 @@ subject + permission + object + attributes -> decision
 The host decides what the names mean:
 
 ```text
-SubjectRef("account", "alice")
+SubjectRef("user", "alice")
 ObjectRef("document", "doc-1")
 RelationRef("viewer")
 PermissionRef("view")
@@ -115,7 +115,7 @@ CheckDecision decision =
         new CheckRequest(
             new ObjectRef("document", "doc-1"),
             new PermissionRef("view"),
-            new SubjectRef("account", "alice")));
+            new SubjectRef("user", "alice")));
 ```
 
 `decision.allowed()` is true only when the resolver can prove the relationship required by the
@@ -157,7 +157,7 @@ ListObjectsResponse response =
         new ListObjectsRequest(
             "document",
             new PermissionRef("view"),
-            new SubjectRef("account", "alice"),
+            new SubjectRef("user", "alice"),
             50));
 ```
 
@@ -281,7 +281,7 @@ ScopedAuthorizationService service = new ScopedAuthorizationService(evaluator);
 ScopeSwitchDecision decision =
     service.canSwitch(
         new ScopeSwitchRequest(
-            new SubjectRef("account", "alice"),
+            new SubjectRef("user", "alice"),
             new ScopeRef("workspace", "beta"),
             ScopePolicyTemplates.ENTER));
 ```
@@ -295,7 +295,7 @@ ScopedPermissionDecision decision =
             new ObjectRef("task", "task-1"),
             new PermissionRef("edit"),
             ScopedSubject.of(
-                new SubjectRef("account", "alice"),
+                new SubjectRef("user", "alice"),
                 new ActiveScope(new ScopeRef("workspace", "beta")))));
 ```
 
@@ -359,18 +359,9 @@ Authentication frameworks provide identity only. Forga remains the decision poin
 and ReBAC, so Sa-Token permission lists and Spring Security granted authorities are not consumed as
 business authorization decisions.
 
-For Sa-Token, add `forga-sa-token`, expose the selected `StpLogic` as a bean, and configure the
-subject type:
-
-```properties
-forga.authentication.subject-type=account
-```
-
-For Spring Security, add `forga-spring-security` and configure the subject type:
-
-```properties
-forga.authentication.subject-type=account
-```
+For Sa-Token, add `forga-sa-token` and expose the selected `StpLogic` as a bean. For Spring
+Security, add `forga-spring-security`. Both adapters map the authenticated identity to
+`SubjectRef("user", loginId)`; there is no subject-type configuration.
 
 The starter discovers `AuthenticatedSubjectProvider` beans without an adapter-selection property.
 Enabled Forga integration requires exactly one provider and refuses to start when none or multiple

@@ -18,7 +18,6 @@ class ForgaSaTokenAutoConfigurationTest {
   @Test
   void assemblesSaTokenProviderWhenStpLogicExists() {
     contextRunner
-        .withPropertyValues("forga.authentication.subject-type=operator")
         .withBean(StpLogic.class, () -> new StubStpLogic("alice"))
         .run(
             context -> {
@@ -26,7 +25,7 @@ class ForgaSaTokenAutoConfigurationTest {
               assertThat(context.getBean(AuthenticatedSubjectProvider.class).currentSubject())
                   .hasValueSatisfying(
                       subject -> {
-                        assertThat(subject.type()).isEqualTo("operator");
+                        assertThat(subject.type()).isEqualTo("user");
                         assertThat(subject.id()).isEqualTo("alice");
                       });
             });

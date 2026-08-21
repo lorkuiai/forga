@@ -11,15 +11,15 @@ class SaTokenAuthenticatedSubjectProviderTest {
   @Test
   void mapsAuthenticatedLoginId() {
     SaTokenAuthenticatedSubjectProvider provider =
-        new SaTokenAuthenticatedSubjectProvider(new StubStpLogic(true, "alice"), "account");
+        new SaTokenAuthenticatedSubjectProvider(new StubStpLogic(true, "alice"));
 
-    assertThat(provider.currentSubject()).contains(new SubjectRef("account", "alice"));
+    assertThat(provider.currentSubject()).contains(new SubjectRef("user", "alice"));
   }
 
   @Test
   void returnsEmptyWithoutLogin() {
     SaTokenAuthenticatedSubjectProvider provider =
-        new SaTokenAuthenticatedSubjectProvider(new StubStpLogic(false, null), "account");
+        new SaTokenAuthenticatedSubjectProvider(new StubStpLogic(false, null));
 
     assertThat(provider.currentSubject()).isEmpty();
   }

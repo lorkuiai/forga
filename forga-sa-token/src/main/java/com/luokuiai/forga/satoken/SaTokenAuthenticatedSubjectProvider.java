@@ -10,19 +10,17 @@ import java.util.Optional;
 public final class SaTokenAuthenticatedSubjectProvider
     implements AuthenticatedSubjectProvider {
 
-  private final StpLogic stpLogic;
+  private static final String USER_SUBJECT_TYPE = "user";
 
-  private final String subjectType;
+  private final StpLogic stpLogic;
 
   /**
    * Creates a Sa-Token authenticated-subject provider.
    *
    * @param stpLogic selected Sa-Token login context
-   * @param subjectType caller-defined Forga subject type
    */
-  public SaTokenAuthenticatedSubjectProvider(StpLogic stpLogic, String subjectType) {
+  public SaTokenAuthenticatedSubjectProvider(StpLogic stpLogic) {
     this.stpLogic = Objects.requireNonNull(stpLogic, "stpLogic is required");
-    this.subjectType = validateSubjectType(subjectType);
   }
 
   @Override
@@ -30,10 +28,6 @@ public final class SaTokenAuthenticatedSubjectProvider
     if (!stpLogic.isLogin()) {
       return Optional.empty();
     }
-    return Optional.of(new SubjectRef(subjectType, stpLogic.getLoginIdAsString()));
-  }
-
-  private static String validateSubjectType(String subjectType) {
-    return new SubjectRef(subjectType, "validation").type();
+    return Optional.of(new SubjectRef(USER_SUBJECT_TYPE, stpLogic.getLoginIdAsString()));
   }
 }

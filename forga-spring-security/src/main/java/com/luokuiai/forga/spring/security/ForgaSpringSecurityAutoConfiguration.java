@@ -1,7 +1,6 @@
 package com.luokuiai.forga.spring.security;
 
 import com.luokuiai.forga.core.context.AuthenticatedSubjectProvider;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
@@ -15,12 +14,10 @@ public class ForgaSpringSecurityAutoConfiguration {
   /**
    * Creates the Spring Security subject provider for the current security context.
    *
-   * @param subjectType caller-defined Forga subject type
    * @return authenticated-subject provider
    */
   @Bean
-  public AuthenticatedSubjectProvider forgaSpringSecuritySubjectProvider(
-      @Value("${forga.authentication.subject-type:account}") String subjectType) {
-    return new SpringSecurityAuthenticatedSubjectProvider(subjectType);
+  public AuthenticatedSubjectProvider forgaSpringSecuritySubjectProvider() {
+    return new SpringSecurityAuthenticatedSubjectProvider();
   }
 }
