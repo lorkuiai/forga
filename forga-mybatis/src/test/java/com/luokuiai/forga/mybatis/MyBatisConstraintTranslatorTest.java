@@ -4,16 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
-import com.luokuiai.forga.query.AuthorizedListQuery;
 import com.luokuiai.forga.query.ExistsConstraint;
 import com.luokuiai.forga.query.PredicateOperator;
 import com.luokuiai.forga.query.QueryConstraint;
 import com.luokuiai.forga.query.QueryConstraintGenerator;
-import com.luokuiai.forga.query.QueryOrdering;
 import com.luokuiai.forga.query.QueryParameter;
-import com.luokuiai.forga.query.QueryProjection;
 import com.luokuiai.forga.query.QueryResource;
-import com.luokuiai.forga.query.QuerySortDirection;
 import com.luokuiai.forga.query.QueryValueType;
 import com.luokuiai.forga.query.ResourceQueryMapping;
 import java.util.List;
@@ -31,7 +27,7 @@ class MyBatisConstraintTranslatorTest {
       ResourceQueryMapping.of(OUTER, List.of("id", "state"));
 
   private static final ResourceQueryMapping INNER_QUERY =
-      ResourceQueryMapping.of(INNER, List.of("outer_id", "subject_id", "relation", "rank"));
+      ResourceQueryMapping.of(INNER, List.of("outer_id", "subject_id"));
 
   @Test
   void translatesCorrelatedExistsWithBoundParameter() {
@@ -116,45 +112,6 @@ class MyBatisConstraintTranslatorTest {
   }
 
   @Test
-  void translatesAuthorizedRowsetJoinProjectionAndOrdering() {
-    QueryParameter subject = new QueryParameter("subject", QueryValueType.STRING);
-    AuthorizedListQuery listQuery =
-        QueryConstraintGenerator.authorizedRowset(
-            OUTER_QUERY,
-            INNER_QUERY,
-            "id",
-            "outer_id",
-            QueryConstraint.predicate(
-                INNER_QUERY.field("subject_id"), PredicateOperator.EQUALS, subject),
-            List.of(new QueryProjection(INNER_QUERY.field("relation"), "forga_relation")),
-            List.of(
-                new QueryOrdering(INNER_QUERY.field("rank"), QuerySortDirection.DESC),
-                new QueryOrdering(OUTER_QUERY.field("state"), QuerySortDirection.ASC)));
-    MyBatisAuthorizationBoundary boundary =
-        MyBatisAuthorizationBoundary.list("outer-list", listQuery);
-
-    MyBatisBoundSql applied =
-        new MyBatisConstraintApplicator(translator())
-            .apply(
-                "SELECT outer_table.* FROM outer_table "
-                    + "WHERE outer_table.deleted = 0 "
-                    + "ORDER BY outer_table.id ASC LIMIT 20",
-                Optional.of(boundary),
-                true);
-
-    assertThat(applied.sql())
-        .isEqualTo(
-            "SELECT outer_table.*, related_table.relation AS forga_relation "
-                + "FROM outer_table JOIN related_table "
-                + "ON outer_table.id = related_table.outer_id "
-                + "WHERE outer_table.deleted = 0 "
-                + "AND (related_table.subject_id = #{forga.parameters.subject}) "
-                + "ORDER BY related_table.rank DESC, outer_table.state ASC, "
-                + "outer_table.id ASC LIMIT 20");
-    assertThat(applied.parameters()).containsExactly(subject);
-  }
-
-  @Test
   void rejectsUnknownResourceOrColumn() {
     QueryConstraint unknownResource =
         QueryConstraint.predicate(
@@ -200,14 +157,6 @@ class MyBatisConstraintTranslatorTest {
             new MyBatisResourceMapping(
                 INNER,
                 "related_table",
-                Map.of(
-                    "outer_id",
-                    "outer_id",
-                    "subject_id",
-                    "subject_id",
-                    "relation",
-                    "relation",
-                    "rank",
-                    "rank"))));
+                Map.of("outer_id", "outer_id", "subject_id", "subject_id"))));
   }
 }

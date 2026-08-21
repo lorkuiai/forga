@@ -1,5 +1,5 @@
 dependencies {
   api project(':forga-core')
   api project(':forga-query')
-  compileOnly "com.baomidou:mybatis-plus-extension:${mybatisPlusVersion}"
+  compileOnly 'com.baomidou:mybatis-plus-extension:3.5.12'
 }

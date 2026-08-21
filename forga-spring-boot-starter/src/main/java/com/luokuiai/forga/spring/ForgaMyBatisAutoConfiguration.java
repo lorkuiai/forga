@@ -1,8 +1,8 @@
 package com.luokuiai.forga.spring;
 
-import com.luokuiai.forga.core.context.AuthenticatedSubjectProvider;
-import com.luokuiai.forga.core.context.AuthorizationAttributesProvider;
 import com.luokuiai.forga.mybatis.ForgaMyBatisInterceptor;
+import com.luokuiai.forga.mybatis.ForgaRequestAttributesProvider;
+import com.luokuiai.forga.mybatis.ForgaSubjectProvider;
 import com.luokuiai.forga.mybatis.MyBatisResourceMapping;
 import com.luokuiai.forga.mybatis.MyBatisStatementRegistry;
 import com.luokuiai.forga.query.QueryResource;
@@ -34,8 +34,8 @@ public class ForgaMyBatisAutoConfiguration {
   public ForgaMyBatisInterceptor forgaMyBatisInterceptor(
       ForgaIntegrationProperties properties,
       MyBatisStatementRegistry statements,
-      AuthenticatedSubjectProvider subjects,
-      AuthorizationAttributesProvider attributes,
+      ForgaSubjectProvider subjects,
+      ForgaRequestAttributesProvider attributes,
       Map<QueryResource, MyBatisResourceMapping> mappings) {
     return ForgaMyBatisAutoConfigurationSupport.assemble(
             properties, statements, subjects, attributes, mappings)

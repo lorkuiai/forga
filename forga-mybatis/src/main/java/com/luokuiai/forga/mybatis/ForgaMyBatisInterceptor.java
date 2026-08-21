@@ -43,7 +43,6 @@ public final class ForgaMyBatisInterceptor implements Interceptor {
     BoundSql boundSql = statement.getBoundSql(parameter);
     MyBatisBoundSql authorized = sqlInterceptor.intercept(statement.getId(), boundSql.getSql());
     replaceSql(boundSql, authorized.sql());
-    bindParameters(boundSql, authorized);
     return invocation.proceed();
   }
 
@@ -60,11 +59,5 @@ public final class ForgaMyBatisInterceptor implements Interceptor {
     } catch (ReflectiveOperationException exception) {
       throw new MyBatisAuthorizationException("failed to rewrite MyBatis SQL");
     }
-  }
-
-  private static void bindParameters(BoundSql boundSql, MyBatisBoundSql authorized) {
-    authorized.parameterValues()
-        .forEach(
-            (name, value) -> boundSql.setAdditionalParameter("forga.parameters." + name, value));
   }
 }

@@ -42,35 +42,4 @@ public final class QueryConstraintGenerator {
             inner.field(predicateField), PredicateOperator.EQUALS, parameter);
     return new ExistsConstraint(inner.resource(), List.of(join), predicate);
   }
-
-  /**
-   * Creates a set-based authorized list query from a resource to an authorization rowset.
-   *
-   * @param resource business resource mapping
-   * @param rowset authorization rowset mapping
-   * @param resourceField resource field joined to the rowset
-   * @param rowsetField rowset field joined to the resource
-   * @param where authorization predicates
-   * @param projections authorization fields to select
-   * @param orderings ordering fields
-   * @return authorized list query plan
-   */
-  public static AuthorizedListQuery authorizedRowset(
-      ResourceQueryMapping resource,
-      ResourceQueryMapping rowset,
-      String resourceField,
-      String rowsetField,
-      QueryConstraint where,
-      List<QueryProjection> projections,
-      List<QueryOrdering> orderings) {
-    Objects.requireNonNull(where, "where is required");
-    AuthorizedRowsetJoin join =
-        new AuthorizedRowsetJoin(
-            resource,
-            rowset,
-            List.of(
-                new QueryCorrelation(
-                    resource.field(resourceField), rowset.field(rowsetField))));
-    return new AuthorizedListQuery(join, where, projections, orderings);
-  }
 }

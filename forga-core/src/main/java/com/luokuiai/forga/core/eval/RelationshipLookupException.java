@@ -9,7 +9,6 @@ public final class RelationshipLookupException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 
-  /** Fail-closed decision reason exposed to the evaluator. */
   private final DecisionReason reason;
 
   /**

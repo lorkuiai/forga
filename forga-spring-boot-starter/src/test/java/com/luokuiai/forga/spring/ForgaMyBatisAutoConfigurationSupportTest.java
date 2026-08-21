@@ -2,10 +2,10 @@ package com.luokuiai.forga.spring;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.luokuiai.forga.core.context.AuthenticatedSubjectProvider;
-import com.luokuiai.forga.core.context.AuthorizationAttributesProvider;
 import com.luokuiai.forga.core.model.PermissionRef;
 import com.luokuiai.forga.core.model.SubjectRef;
+import com.luokuiai.forga.mybatis.ForgaRequestAttributesProvider;
+import com.luokuiai.forga.mybatis.ForgaSubjectProvider;
 import com.luokuiai.forga.mybatis.MyBatisAuthorizationBoundary;
 import com.luokuiai.forga.mybatis.MyBatisResourceMapping;
 import com.luokuiai.forga.mybatis.MyBatisStatementAuthorization;
@@ -39,8 +39,8 @@ class ForgaMyBatisAutoConfigurationSupportTest {
 
   @Test
   void enabledIntegrationAssemblesInterceptorFromGenericBeans() {
-    AuthorizationAttributesProvider attributes = Map::of;
-    AuthenticatedSubjectProvider subjects = subjectProvider();
+    ForgaRequestAttributesProvider attributes = Map::of;
+    ForgaSubjectProvider subjects = subjectProvider();
 
     ForgaMyBatisIntegrationComponents components =
         ForgaMyBatisAutoConfigurationSupport.assemble(
@@ -56,7 +56,7 @@ class ForgaMyBatisAutoConfigurationSupportTest {
     assertThat(components.attributes()).isSameAs(attributes);
   }
 
-  private static AuthenticatedSubjectProvider subjectProvider() {
+  private static ForgaSubjectProvider subjectProvider() {
     return () -> Optional.of(new SubjectRef("principal", "alice"));
   }
 

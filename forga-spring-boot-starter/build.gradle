@@ -1,15 +1,9 @@
 dependencies {
   api project(':forga-core')
+  api project(':forga-resolver-api')
   api project(':forga-query')
-  api project(':forga-mybatis')
-  api project(':forga-spring-web')
-  compileOnly "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
-  compileOnly "com.baomidou:mybatis-plus-extension:${mybatisPlusVersion}"
-  testImplementation "com.baomidou:mybatis-plus-extension:${mybatisPlusVersion}"
-  testImplementation "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
-  testImplementation "org.springframework.boot:spring-boot-test:${springBootVersion}"
-  testImplementation "cn.dev33:sa-token-core:${saTokenVersion}"
-  testImplementation "org.springframework.security:spring-security-core:${springSecurityVersion}"
-  testImplementation project(':forga-sa-token')
-  testImplementation project(':forga-spring-security')
+  implementation project(':forga-mybatis')
+  compileOnly 'org.springframework.boot:spring-boot-autoconfigure:3.4.4'
+  compileOnly 'com.baomidou:mybatis-plus-extension:3.5.12'
+  testImplementation 'com.baomidou:mybatis-plus-extension:3.5.12'
 }

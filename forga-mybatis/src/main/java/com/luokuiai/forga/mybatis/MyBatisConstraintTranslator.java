@@ -1,6 +1,5 @@
 package com.luokuiai.forga.mybatis;
 
-import com.luokuiai.forga.query.AuthorizedListQuery;
 import com.luokuiai.forga.query.BooleanConstraint;
 import com.luokuiai.forga.query.BooleanOperator;
 import com.luokuiai.forga.query.ExistsConstraint;
@@ -10,14 +9,11 @@ import com.luokuiai.forga.query.QueryConstraint;
 import com.luokuiai.forga.query.QueryCorrelation;
 import com.luokuiai.forga.query.QueryFieldOperand;
 import com.luokuiai.forga.query.QueryJoin;
-import com.luokuiai.forga.query.QueryOrdering;
 import com.luokuiai.forga.query.QueryOperand;
 import com.luokuiai.forga.query.QueryParameter;
-import com.luokuiai.forga.query.QueryProjection;
 import com.luokuiai.forga.query.QueryResource;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -48,27 +44,6 @@ public final class MyBatisConstraintTranslator {
     List<QueryParameter> parameters = new ArrayList<>();
     String sql = translateConstraint(constraint, parameters);
     return new MyBatisBoundConstraint(sql, parameters);
-  }
-
-  /**
-   * Translates and applies a set-based authorized list query to a SELECT statement.
-   *
-   * @param sql original SELECT SQL
-   * @param query authorized list query
-   * @return SQL with authorization rowset join, projections, and ordering
-   */
-  public MyBatisBoundSql translateAuthorizedList(String sql, AuthorizedListQuery query) {
-    Objects.requireNonNull(query, "query is required");
-    String original = Objects.requireNonNull(sql, "sql is required").trim();
-    if (original.isBlank()) {
-      throw new IllegalArgumentException("sql is required");
-    }
-    List<QueryParameter> parameters = new ArrayList<>();
-    String selectSql = addProjections(original, query.projections());
-    String joinedSql = addJoin(selectSql, query);
-    String filteredSql = addWhere(joinedSql, translateConstraint(query.where(), parameters));
-    String orderedSql = addOrderings(filteredSql, query.orderings());
-    return new MyBatisBoundSql(orderedSql, parameters);
   }
 
   private String translateConstraint(
@@ -131,66 +106,6 @@ public final class MyBatisConstraintTranslator {
     return column(correlation.outer()) + " = " + column(correlation.inner());
   }
 
-  private String addProjections(String sql, List<QueryProjection> projections) {
-    if (projections.isEmpty()) {
-      return sql;
-    }
-    int fromIndex = keywordIndex(sql, " from ");
-    if (fromIndex < 0 || !sql.regionMatches(true, 0, "select ", 0, 7)) {
-      throw new MyBatisTranslationException("authorized list query requires SELECT ... FROM");
-    }
-    String projectionSql =
-        projections.stream()
-            .map(projection -> column(projection.field()) + " AS " + projection.alias())
-            .collect(Collectors.joining(", "));
-    return sql.substring(0, fromIndex) + ", " + projectionSql + sql.substring(fromIndex);
-  }
-
-  private String addJoin(String sql, AuthorizedListQuery query) {
-    String joinSql =
-        query.join().correlations().stream()
-            .map(this::translateCorrelation)
-            .collect(Collectors.joining(" AND "));
-    MyBatisResourceMapping rowset = mapping(query.join().rowset().resource());
-    int insertionIndex =
-        firstClauseIndex(sql, List.of(" where ", " order by ", " limit ", " offset "));
-    String suffix = insertionIndex < 0 ? "" : sql.substring(insertionIndex);
-    String prefix = insertionIndex < 0 ? sql : sql.substring(0, insertionIndex);
-    return prefix + " JOIN " + rowset.tableReference() + " ON " + joinSql + suffix;
-  }
-
-  private String addWhere(String sql, String where) {
-    int orderIndex = firstClauseIndex(sql, List.of(" order by ", " limit ", " offset "));
-    String suffix = orderIndex < 0 ? "" : sql.substring(orderIndex);
-    String prefix = orderIndex < 0 ? sql : sql.substring(0, orderIndex);
-    String separator = prefix.toLowerCase(Locale.ROOT).contains(" where ") ? " AND " : " WHERE ";
-    return prefix + separator + "(" + where + ")" + suffix;
-  }
-
-  private String addOrderings(String sql, List<QueryOrdering> orderings) {
-    if (orderings.isEmpty()) {
-      return sql;
-    }
-    String orderingSql =
-        orderings.stream()
-            .map(ordering -> column(ordering.field()) + " " + ordering.direction().name())
-            .collect(Collectors.joining(", "));
-    int orderIndex = keywordIndex(sql, " order by ");
-    int limitIndex = firstClauseIndex(sql, List.of(" limit ", " offset "));
-    if (orderIndex >= 0) {
-      String prefix = sql.substring(0, orderIndex + " order by ".length());
-      String existing =
-          limitIndex < 0
-              ? sql.substring(orderIndex + " order by ".length())
-              : sql.substring(orderIndex + " order by ".length(), limitIndex);
-      String suffix = limitIndex < 0 ? "" : sql.substring(limitIndex);
-      return prefix + orderingSql + ", " + existing.strip() + suffix;
-    }
-    String suffix = limitIndex < 0 ? "" : sql.substring(limitIndex);
-    String prefix = limitIndex < 0 ? sql : sql.substring(0, limitIndex);
-    return prefix + " ORDER BY " + orderingSql + suffix;
-  }
-
   private String operand(QueryOperand operand, List<QueryParameter> parameters) {
     if (operand instanceof QueryParameter parameter) {
       parameters.add(parameter);
@@ -212,18 +127,6 @@ public final class MyBatisConstraintTranslator {
       throw new MyBatisTranslationException("resource is not mapped: " + resource.type());
     }
     return mapping;
-  }
-
-  private static int firstClauseIndex(String sql, List<String> clauses) {
-    return clauses.stream()
-        .mapToInt(clause -> keywordIndex(sql, clause))
-        .filter(index -> index >= 0)
-        .min()
-        .orElse(-1);
-  }
-
-  private static int keywordIndex(String sql, String keyword) {
-    return sql.toLowerCase(Locale.ROOT).indexOf(keyword);
   }
 
   private static String operator(PredicateOperator operator) {
