@@ -45,6 +45,32 @@ public final class ScopeQueryConstraints {
   }
 
   /**
+   * Creates a constraint allowing objects in the active scope or matched by an explicit grant.
+   *
+   * <p>The grant constraint must be set-based and supplied by the host application. The result is
+   * only an ownership-or-grant boundary fragment; hosts must combine it with ordinary object
+   * permission constraints and verify scope entry before executing the query. This helper does not
+   * perform per-object authorization checks or prescribe grant storage.
+   *
+   * @param mapping allowlisted resource mapping
+   * @param scopeTypeField field storing the scope type
+   * @param scopeIdField field storing the scope id
+   * @param granted host-provided explicit grant constraint
+   * @return OR constraint for active-scope ownership or an explicit grant
+   */
+  public static QueryConstraint activeOrGranted(
+      ResourceQueryMapping mapping,
+      String scopeTypeField,
+      String scopeIdField,
+      QueryConstraint granted) {
+    if (granted == null) {
+      throw new IllegalArgumentException("granted constraint is required");
+    }
+    return QueryConstraint.or(
+        List.of(activeScope(mapping, scopeTypeField, scopeIdField), granted));
+  }
+
+  /**
    * Creates the parameter values required by {@link #activeScope}.
    *
    * @param activeScope active scope

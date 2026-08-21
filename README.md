@@ -237,8 +237,10 @@ The scope package provides:
 - `ActingScopeContext`: original subject, acting subject, and active scope.
 - `ScopeSwitchRequest` / `ScopeSwitchDecision`: check whether a subject can enter a scope.
 - `ScopedPermissionRequest` / `ScopedPermissionDecision`: check a permission under active scope.
+- `ObjectScopeResolver`: resolve the host-owned scope containing a protected object.
+- `CrossScopeAccessResolver`: prove an explicit grant when active and object scopes differ.
 - `ScopePolicyTemplates`: `member`, `assigned`, `denied`, and `enter` policy helpers.
-- `ScopeQueryConstraints`: parameterized predicates for active-scope list filtering.
+- `ScopeQueryConstraints`: parameterized active-scope and active-or-granted list predicates.
 
 Concurrent cross-boundary roles should be stored as subject-scope relationships, not account-owned
 state. For example:
@@ -276,10 +278,10 @@ selected `ActiveScope`.
 Scope switch example:
 
 ```java
-ScopedAuthorizationService service = new ScopedAuthorizationService(evaluator);
+ScopedAuthorizationService switchService = new ScopedAuthorizationService(evaluator);
 
 ScopeSwitchDecision decision =
-    service.canSwitch(
+    switchService.canSwitch(
         new ScopeSwitchRequest(
             new SubjectRef("user", "alice"),
             new ScopeRef("workspace", "beta"),
@@ -289,6 +291,12 @@ ScopeSwitchDecision decision =
 Scoped permission example:
 
 ```java
+ObjectScopeResolver objectScopes =
+    object -> Optional.of(new ScopeRef("workspace", hostObjects.scopeId(object)));
+CrossScopeAccessResolver crossScopeAccess = hostGrants::allows;
+ScopedAuthorizationService service =
+    new ScopedAuthorizationService(evaluator, objectScopes, crossScopeAccess);
+
 ScopedPermissionDecision decision =
     service.check(
         new ScopedPermissionRequest(
@@ -299,8 +307,21 @@ ScopedPermissionDecision decision =
                 new ActiveScope(new ScopeRef("workspace", "beta")))));
 ```
 
-The service first verifies that the subject can enter the active scope, then evaluates the requested
-resource permission.
+Strict construction first verifies that the subject can enter the active scope, resolves the
+object's owning scope, requires an explicit host grant when the scopes differ, and only then
+evaluates the requested object permission. Missing ownership, denied grants, and resolver failures
+fail closed. The older constructors remain available for compatibility but do not bind objects to
+the active scope; hosts using them must enforce that boundary themselves.
+
+For list queries that include explicitly granted objects, compose a host-owned set-based grant
+predicate with `ScopeQueryConstraints.activeOrGranted(...)`. This is only the scope boundary
+fragment: verify scope entry first and combine it with the ordinary object-permission constraint.
+Keep the grant predicate consistent with `CrossScopeAccessResolver`; do not authorize a page by
+calling `check` once per row.
+
+Object ownership, cross-scope grants, and relationship resolution participating in one decision
+should observe the same host transaction or request-consistent snapshot. Otherwise concurrent
+ownership or grant changes can make the separate checks disagree.
 
 ## Permission Catalog
 
