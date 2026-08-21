@@ -43,6 +43,28 @@ class ScopeQueryConstraintsTest {
   }
 
   @Test
+  void combinesActiveScopeWithExplicitGrantConstraint() {
+    QueryResource resource = new QueryResource("documents");
+    ResourceQueryMapping mapping =
+        ResourceQueryMapping.of(resource, List.of("scope_type", "scope_id", "grant_id"));
+    QueryConstraint granted =
+        QueryConstraint.predicate(
+            mapping.field("grant_id"),
+            PredicateOperator.EQUALS,
+            new QueryParameter("grant", QueryValueType.STRING));
+
+    QueryConstraint constraint =
+        ScopeQueryConstraints.activeOrGranted(
+            mapping, "scope_type", "scope_id", granted);
+
+    BooleanConstraint booleanConstraint = (BooleanConstraint) constraint;
+    assertThat(booleanConstraint.operator()).isEqualTo(BooleanOperator.OR);
+    assertThat(booleanConstraint.constraints()).hasSize(2);
+    assertThat(booleanConstraint.constraints().get(0)).isInstanceOf(BooleanConstraint.class);
+    assertThat(booleanConstraint.constraints().get(1)).isSameAs(granted);
+  }
+
+  @Test
   void exposesParameterValuesForActiveScope() {
     ActiveScope activeScope = new ActiveScope(new ScopeRef("workspace", "alpha"));
 
