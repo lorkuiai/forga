@@ -1,4 +1,3 @@
 dependencies {
   api project(':forga-core')
-  api project(':forga-resolver-api')
 }

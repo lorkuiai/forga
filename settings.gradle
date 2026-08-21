@@ -1,7 +1,10 @@
 rootProject.name = 'forga'
 
 include 'forga-core'
-include 'forga-resolver-api'
 include 'forga-query'
 include 'forga-mybatis'
+include 'forga-sa-token'
+include 'forga-spring-security'
 include 'forga-spring-boot-starter'
+include 'forga-scope'
+include 'forga-spring-web'

@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+import com.luokuiai.forga.core.context.AuthenticatedSubjectProvider;
+import com.luokuiai.forga.core.context.AuthorizationAttributesProvider;
 import com.luokuiai.forga.core.model.PermissionRef;
 import com.luokuiai.forga.core.model.SubjectRef;
 import com.luokuiai.forga.query.PredicateOperator;
@@ -33,6 +35,9 @@ class MyBatisAuthorizationSqlInterceptorTest {
             "SELECT * FROM resource_table WHERE "
                 + "(resource_table.owner_id = #{forga.parameters.subject})");
     assertThat(sql.parameters()).extracting(QueryParameter::name).containsExactly("subject");
+    assertThat(sql.parameterValues()).containsEntry("subject", "alice");
+    assertThat(sql.parameterValues()).containsEntry("subject_id", "alice");
+    assertThat(sql.parameterValues()).containsEntry("subject_type", "principal");
   }
 
   @Test
@@ -65,6 +70,15 @@ class MyBatisAuthorizationSqlInterceptorTest {
   }
 
   @Test
+  void failsClosedWhenRequiredAuthorizationParameterIsMissing() {
+    MyBatisAuthorizationSqlInterceptor interceptor = interceptor(true, subjectProvider(), Map::of);
+
+    assertThatExceptionOfType(MyBatisAuthorizationException.class)
+        .isThrownBy(() -> interceptor.intercept("Mapper.scoped", "SELECT * FROM resource_table"))
+        .withMessageContaining("scope");
+  }
+
+  @Test
   void failsClosedForUnsupportedSqlShape() {
     MyBatisAuthorizationSqlInterceptor interceptor = interceptor(true, subjectProvider());
 
@@ -83,7 +97,14 @@ class MyBatisAuthorizationSqlInterceptorTest {
   }
 
   private static MyBatisAuthorizationSqlInterceptor interceptor(
-      boolean enabled, ForgaSubjectProvider subjects) {
+      boolean enabled, AuthenticatedSubjectProvider subjects) {
+    return interceptor(enabled, subjects, Map::of);
+  }
+
+  private static MyBatisAuthorizationSqlInterceptor interceptor(
+      boolean enabled,
+      AuthenticatedSubjectProvider subjects,
+      AuthorizationAttributesProvider attributes) {
     MyBatisConstraintTranslator translator =
         new MyBatisConstraintTranslator(
             Map.of(
@@ -91,14 +112,14 @@ class MyBatisAuthorizationSqlInterceptorTest {
                 new MyBatisResourceMapping(
                     RESOURCE, "resource_table", Map.of("owner", "owner_id"))));
     return new MyBatisAuthorizationSqlInterceptor(
-        new MyBatisStatementRegistry(List.of(statement())),
+        new MyBatisStatementRegistry(List.of(statement(), scopedStatement())),
         subjects,
-        Map::of,
+        attributes,
         new MyBatisConstraintApplicator(translator),
         enabled);
   }
 
-  private static ForgaSubjectProvider subjectProvider() {
+  private static AuthenticatedSubjectProvider subjectProvider() {
     return () -> Optional.of(new SubjectRef("principal", "alice"));
   }
 
@@ -112,5 +133,17 @@ class MyBatisAuthorizationSqlInterceptorTest {
                 PredicateOperator.EQUALS,
                 subject));
     return new MyBatisStatementAuthorization("Mapper.select", RESOURCE, VIEW, boundary);
+  }
+
+  private static MyBatisStatementAuthorization scopedStatement() {
+    QueryParameter scope = new QueryParameter("scope_id", QueryValueType.STRING);
+    MyBatisAuthorizationBoundary boundary =
+        new MyBatisAuthorizationBoundary(
+            "resource-scope",
+            QueryConstraint.predicate(
+                new com.luokuiai.forga.query.QueryField(RESOURCE, "owner"),
+                PredicateOperator.EQUALS,
+                scope));
+    return new MyBatisStatementAuthorization("Mapper.scoped", RESOURCE, VIEW, boundary);
   }
 }
