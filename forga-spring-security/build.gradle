@@ -1,0 +1,8 @@
+dependencies {
+  api project(':forga-core')
+  compileOnly "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
+  compileOnly "org.springframework.security:spring-security-core:${springSecurityVersion}"
+  testImplementation "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
+  testImplementation "org.springframework.boot:spring-boot-test:${springBootVersion}"
+  testImplementation "org.springframework.security:spring-security-core:${springSecurityVersion}"
+}

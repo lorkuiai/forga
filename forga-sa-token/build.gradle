@@ -1,0 +1,8 @@
+dependencies {
+  api project(':forga-core')
+  compileOnly "cn.dev33:sa-token-core:${saTokenVersion}"
+  compileOnly "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
+  testImplementation "cn.dev33:sa-token-core:${saTokenVersion}"
+  testImplementation "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
+  testImplementation "org.springframework.boot:spring-boot-test:${springBootVersion}"
+}

@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+import com.luokuiai.forga.core.context.AuthenticatedSubjectProvider;
+import com.luokuiai.forga.core.context.AuthorizationAttributesProvider;
 import com.luokuiai.forga.core.model.PermissionRef;
 import com.luokuiai.forga.core.model.SubjectRef;
 import com.luokuiai.forga.query.PredicateOperator;
@@ -95,14 +97,14 @@ class MyBatisAuthorizationSqlInterceptorTest {
   }
 
   private static MyBatisAuthorizationSqlInterceptor interceptor(
-      boolean enabled, ForgaSubjectProvider subjects) {
+      boolean enabled, AuthenticatedSubjectProvider subjects) {
     return interceptor(enabled, subjects, Map::of);
   }
 
   private static MyBatisAuthorizationSqlInterceptor interceptor(
       boolean enabled,
-      ForgaSubjectProvider subjects,
-      ForgaRequestAttributesProvider attributes) {
+      AuthenticatedSubjectProvider subjects,
+      AuthorizationAttributesProvider attributes) {
     MyBatisConstraintTranslator translator =
         new MyBatisConstraintTranslator(
             Map.of(
@@ -117,7 +119,7 @@ class MyBatisAuthorizationSqlInterceptorTest {
         enabled);
   }
 
-  private static ForgaSubjectProvider subjectProvider() {
+  private static AuthenticatedSubjectProvider subjectProvider() {
     return () -> Optional.of(new SubjectRef("principal", "alice"));
   }
 

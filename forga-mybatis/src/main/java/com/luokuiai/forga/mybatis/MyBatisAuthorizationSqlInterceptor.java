@@ -1,5 +1,7 @@
 package com.luokuiai.forga.mybatis;
 
+import com.luokuiai.forga.core.context.AuthenticatedSubjectProvider;
+import com.luokuiai.forga.core.context.AuthorizationAttributesProvider;
 import com.luokuiai.forga.core.model.SubjectRef;
 import com.luokuiai.forga.query.QueryParameter;
 import java.util.HashMap;
@@ -15,9 +17,9 @@ public final class MyBatisAuthorizationSqlInterceptor {
 
   private final MyBatisStatementRegistry statements;
 
-  private final ForgaSubjectProvider subjects;
+  private final AuthenticatedSubjectProvider subjects;
 
-  private final ForgaRequestAttributesProvider attributes;
+  private final AuthorizationAttributesProvider attributes;
 
   private final MyBatisConstraintApplicator applicator;
 
@@ -34,8 +36,8 @@ public final class MyBatisAuthorizationSqlInterceptor {
    */
   public MyBatisAuthorizationSqlInterceptor(
       MyBatisStatementRegistry statements,
-      ForgaSubjectProvider subjects,
-      ForgaRequestAttributesProvider attributes,
+      AuthenticatedSubjectProvider subjects,
+      AuthorizationAttributesProvider attributes,
       MyBatisConstraintApplicator applicator,
       boolean enabled) {
     this.statements = Objects.requireNonNull(statements, "statements are required");
