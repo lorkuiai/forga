@@ -1,41 +1,96 @@
 # Forga
 
-Forga is an embedded, tenant-neutral authorization engine for Java applications. It evaluates
-RBAC, ReBAC, and ABAC policies over relationships and attributes supplied by the host
-application.
+Forga is an embedded, domain-neutral authorization SDK for Java applications. It evaluates RBAC,
+ReBAC, and ABAC policies over relationships and attributes supplied by the host application.
 
-Forga does not own business entities or require a relationship database. Applications retain
-their existing permission-management and persistence model, then expose forward, reverse, and
-batch relationship queries through resolver interfaces.
+Forga is not an identity system, permission-management product, tenant framework, or relationship
+database. Host applications keep their own accounts, business resources, relationship storage, and
+permission-management UI. Forga provides the authorization model, bounded evaluator, resolver
+contracts, query constraints, and optional framework integrations.
+
+## When To Use It
+
+Use Forga when an application needs authorization such as:
+
+- A subject can view or edit a resource because of a direct role or relationship.
+- A resource inherits permissions through a group, parent object, folder, workspace, project, or
+  other host-defined boundary.
+- A subject can operate in multiple boundaries and must select an active boundary before acting.
+- A list query must be constrained by authorization instead of loading rows and checking them one by
+  one.
+- Authorization data already exists in host tables or services and should not be copied into a
+  Forga-owned store.
 
 ## Modules
 
-- `forga-core`: authorization model, policy model, and bounded graph evaluation.
-- `forga-resolver-api`: host-owned relationship and attribute resolution contracts.
-- `forga-query`: typed query constraints for pushing authorization into business queries.
-- `forga-mybatis`: MyBatis integration for applying query constraints without changing tables.
-- `forga-spring-boot-starter`: opt-in configuration and integration lifecycle.
+- `forga-core`: references, policy expressions, compiled policies, bounded `check`, `bulkCheck`,
+  and `listObjects` evaluation.
+- `forga-resolver-api`: host-owned relationship and attribute resolver contracts.
+- `forga-query`: typed query constraints for pushing authorization into host queries.
+- `forga-mybatis`: MyBatis SQL translation and statement interception helpers.
+- `forga-spring-boot-starter`: opt-in runtime assembly and MyBatis auto-configuration.
+- `forga-scope`: scope switching, active-scope checks, acting context, and scope query helpers.
 
-## Design Boundaries
+## Design Model
 
-- The core has no tenant, person, organization, file, or workflow concept.
-- Business modules remain the source of truth for authorization relationships.
-- `check`, `bulkCheck`, and `listObjects` share one policy model and bounded evaluator.
-- `listObjects` uses resolver-provided reverse queries and cursor pagination; it does not loop
-  over an unbounded candidate collection.
-- Disabling Forga removes its authorization constraints and leaves ordinary business queries
-  operational.
+Forga evaluates opaque references:
 
-The initial implementation is specified in
-`openspec/changes/build-embedded-authorization-engine/`.
-
-## Build
-
-```bash
-./gradlew check
+```text
+subject + permission + object + attributes -> decision
 ```
 
-## Policy Example
+The host decides what the names mean:
+
+```text
+SubjectRef("account", "alice")
+ObjectRef("document", "doc-1")
+RelationRef("viewer")
+PermissionRef("view")
+AttributeRef("region")
+```
+
+Forga compares these values and evaluates policy expressions. It does not assign business meaning
+to object types, subject types, relations, permissions, caveats, attributes, or scopes.
+
+The key design boundary is:
+
+```text
+Host application owns data.
+Forga owns authorization evaluation.
+```
+
+## Authorization Styles
+
+Forga supports RBAC, ReBAC, and ABAC using one policy model.
+
+RBAC is represented as relationships from a role-like object or scope to a subject:
+
+```text
+scope:alpha#admin@subject:alice
+permission manage = relation(admin)
+```
+
+ReBAC is represented as relationships between subjects, objects, and object sets:
+
+```text
+document:roadmap#viewer@subject:alice
+document:roadmap#parent@folder:strategy#member
+folder:strategy#member@subject:alice
+```
+
+ABAC is represented with caveats and request attributes:
+
+```text
+permission view = caveat(relation(viewer), business_hours)
+attributes: business_hours=true
+```
+
+These styles can be composed in one expression with union, intersection, exclusion, traversal, and
+caveat nodes.
+
+## Basic Check
+
+Define a policy:
 
 ```java
 RelationRef viewer = new RelationRef("viewer");
@@ -47,49 +102,209 @@ CompiledPolicy policy =
         ResolverCapabilities.of(List.of(viewer), List.of()));
 ```
 
-The names are caller-defined. Forga compares them as opaque values and does not assign built-in
-meaning to any object type, subject type, relation, permission, caveat, or attribute.
+Create an evaluator with a host resolver:
+
+```java
+AuthorizationEvaluator evaluator =
+    new AuthorizationEvaluator(policy, relationshipLookup, EvaluationLimits.defaults());
+
+CheckDecision decision =
+    evaluator.check(
+        new CheckRequest(
+            new ObjectRef("document", "doc-1"),
+            new PermissionRef("view"),
+            new SubjectRef("account", "alice")));
+```
+
+`decision.allowed()` is true only when the resolver can prove the relationship required by the
+policy. Unknown permissions, resolver failures, cycle detection, limit exhaustion, and consistency
+conflicts fail closed.
 
 ## Host Resolvers
 
-Applications expose their existing authorization data through resolver contracts. A resolver may
-read from any host-owned tables or services, but it returns neutral references:
+Applications expose existing authorization data through resolver contracts. A resolver can read
+from any host-owned table, cache, service, or graph, but it returns neutral Forga references.
+
+`forga-resolver-api` provides higher-level resolver contracts:
 
 ```java
 RelationshipResolver resolver = ...;
 ResolverRegistry registry = new ResolverRegistry(List.of(resolver));
 ```
 
+`forga-core` evaluates against lower-level lookup contracts:
+
+```java
+RelationshipLookup relationshipLookup = requests -> ...;
+ObjectListingLookup objectListingLookup = requests -> ...;
+```
+
 Forward resolution powers `check` and `bulkCheck`. Reverse resolution powers `listObjects`.
-Attribute resolution is used only for allowlisted attributes needed by caveats or query mappings.
-Forga does not require a Forga-owned relationship table.
+Attribute resolution is used for caveats and allowlisted query mappings.
+
+Forga does not require a Forga-owned relationship table. Hosts may store relationships in their own
+schema, derive them from business tables, or resolve them from external services.
 
 ## Object Listing
 
-`listObjects` discovers objects from reverse relationship resolver pages. It does not scan a
-business object table and call `check` for each row. Objects that are not discoverable from
-registered reverse relationships are outside the graph-listing boundary; hosts that need to query
-their full business table should use query constraints instead.
+`listObjects` discovers objects from reverse relationship resolver pages:
 
-Listing cursors are opaque and bound to request identity, policy fingerprint, consistency context,
-and resolver continuation state. Reusing a cursor with a different subject, object type, or
-permission fails closed.
+```java
+ListObjectsResponse response =
+    evaluator.listObjects(
+        new ListObjectsRequest(
+            "document",
+            new PermissionRef("view"),
+            new SubjectRef("account", "alice"),
+            50));
+```
+
+This is not a table scan plus per-row `check`. The host resolver must provide reverse lookup pages.
+Objects that are not discoverable from reverse relationships are outside graph listing. For normal
+business list pages, use query constraints instead.
+
+Listing cursors are opaque and bound to the request identity, policy fingerprint, consistency
+context, and resolver continuation state. Reusing a cursor with different request inputs fails
+closed.
 
 ## Query Constraints
 
-`forga-query` represents filters as typed fields, parameters, predicates, joins, correlated
-existence checks, and boolean composition. `forga-mybatis` translates only allowlisted resource
-fields into parameterized SQL fragments such as `#{forga.parameters.subject}`. Unknown fields,
-unsafe identifiers, or unsupported constraint nodes are rejected before SQL execution.
+`forga-query` represents authorization filters as typed fields, parameters, predicates, joins,
+correlated existence checks, and boolean composition. `forga-mybatis` translates only allowlisted
+fields into parameterized SQL fragments.
+
+This is the path for business list pages:
+
+```text
+host request -> subject + active scope -> query constraint -> parameterized SQL
+```
+
+Unknown fields, unsafe identifiers, or unsupported constraint nodes are rejected before SQL
+execution.
+
+## Scope And Concurrent Roles
+
+`forga-scope` handles applications where one subject can operate under multiple authorization
+boundaries. A scope can represent a host-owned boundary such as a workspace, project, organization,
+department, tenant, or another partition. Scope names are examples; hosts map their own ids to
+`ScopeRef`.
+
+The scope package provides:
+
+- `ScopeRef`: opaque boundary reference.
+- `ActiveScope`: selected boundary for the current request.
+- `ScopedSubject`: subject plus optional active scope.
+- `ActingScopeContext`: original subject, acting subject, and active scope.
+- `ScopeSwitchRequest` / `ScopeSwitchDecision`: check whether a subject can enter a scope.
+- `ScopedPermissionRequest` / `ScopedPermissionDecision`: check a permission under active scope.
+- `ScopePolicyTemplates`: `member`, `assigned`, `denied`, and `enter` policy helpers.
+- `ScopeQueryConstraints`: parameterized predicates for active-scope list filtering.
+
+Concurrent cross-boundary roles should be stored as subject-scope relationships, not account-owned
+state. For example:
+
+```text
+scope:alpha#member@subject:alice
+scope:beta#assigned@subject:alice
+scope:beta#denied@subject:bob
+```
+
+An application may return an aggregated list for switching UI:
+
+```json
+[
+  {
+    "scopeType": "workspace",
+    "scopeId": "alpha",
+    "relation": "member",
+    "role": "admin",
+    "primary": true
+  },
+  {
+    "scopeType": "workspace",
+    "scopeId": "beta",
+    "relation": "assigned",
+    "role": "reviewer",
+    "primary": false
+  }
+]
+```
+
+That list is display state. Authorization still evaluates the underlying relationships and the
+selected `ActiveScope`.
+
+Scope switch example:
+
+```java
+ScopedAuthorizationService service = new ScopedAuthorizationService(evaluator);
+
+ScopeSwitchDecision decision =
+    service.canSwitch(
+        new ScopeSwitchRequest(
+            new SubjectRef("account", "alice"),
+            new ScopeRef("workspace", "beta"),
+            ScopePolicyTemplates.ENTER));
+```
+
+Scoped permission example:
+
+```java
+ScopedPermissionDecision decision =
+    service.check(
+        new ScopedPermissionRequest(
+            new ObjectRef("task", "task-1"),
+            new PermissionRef("edit"),
+            ScopedSubject.of(
+                new SubjectRef("account", "alice"),
+                new ActiveScope(new ScopeRef("workspace", "beta")))));
+```
+
+The service first verifies that the subject can enter the active scope, then evaluates the requested
+resource permission.
+
+## MyBatis And Spring Integration
+
+`forga-mybatis` can apply translated query constraints to configured MyBatis statements. The host
+registers statement authorization metadata and supplies the current subject/request attributes.
+
+Important integration behavior:
+
+- Configured statements receive authorization constraints.
+- Unconfigured statements are left unchanged.
+- Disabled integration leaves ordinary business SQL unchanged.
+- Missing subject or unsupported configured SQL fails closed.
+- Only allowlisted fields are translated into SQL.
+
+`forga-spring-boot-starter` assembles optional runtime components and MyBatis integration when
+enabled. Applications still provide host-specific resolvers, subject providers, active-scope
+providers, and statement mappings.
 
 ## Consistency And Limits
 
 Each evaluation can carry one opaque consistency token. Resolvers may establish the token on the
-first read; conflicting tokens fail closed. Evaluation and listing enforce configured depth,
-visited-node, resolver-call, intermediate-result, page-size, batch-size, deadline, and cycle
-bounds.
+first read; conflicting tokens fail closed.
+
+Evaluation and listing enforce configured bounds:
+
+- max depth
+- max visited nodes
+- max resolver calls
+- max intermediate results
+- page size
+- batch size
+- deadline
+- cycle detection
 
 ## Disabled Behavior
 
 The starter is opt-in. When disabled, it assembles no runtime components and the MyBatis applicator
 returns the original SQL unchanged, with no required authorization request context.
+
+## Build
+
+```bash
+./gradlew clean check
+```
+
+GitHub Actions runs the same Gradle check on pull requests targeting `main` or `develop` and on
+pushes to those branches.
