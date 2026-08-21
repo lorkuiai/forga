@@ -24,8 +24,7 @@ Use Forga when an application needs authorization such as:
 ## Modules
 
 - `forga-core`: references, policy expressions, compiled policies, bounded `check`, `bulkCheck`,
-  and `listObjects` evaluation.
-- `forga-resolver-api`: host-owned relationship and attribute resolver contracts.
+  and `listObjects` evaluation, plus host-owned relationship and attribute resolver contracts.
 - `forga-query`: typed query constraints for pushing authorization into host queries.
 - `forga-mybatis`: MyBatis SQL translation and statement interception helpers.
 - `forga-spring-boot-starter`: opt-in runtime assembly and MyBatis auto-configuration.
@@ -126,7 +125,7 @@ conflicts fail closed.
 Applications expose existing authorization data through resolver contracts. A resolver can read
 from any host-owned table, cache, service, or graph, but it returns neutral Forga references.
 
-`forga-resolver-api` provides higher-level resolver contracts:
+`forga-core` provides higher-level resolver contracts:
 
 ```java
 RelationshipResolver resolver = ...;

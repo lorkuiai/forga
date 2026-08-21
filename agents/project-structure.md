@@ -4,8 +4,8 @@
   - `config.yaml`: OpenSpec configuration.
   - `changes/`: active proposals, design docs, delta specs, and tasks.
   - `specs/`: archived or synced capability specs when present.
-- `forga-core/`: domain-neutral authorization model, policy model, and bounded evaluator.
-- `forga-resolver-api/`: host-owned relationship and attribute resolver contracts.
+- `forga-core/`: domain-neutral authorization model, policy model, bounded evaluator, and host
+  resolver contracts.
 - `forga-query/`: typed query constraint model for pushing authorization into host queries.
 - `forga-mybatis/`: optional MyBatis integration for translating and applying query constraints.
 - `forga-spring-boot-starter/`: optional Spring Boot assembly and integration lifecycle.
