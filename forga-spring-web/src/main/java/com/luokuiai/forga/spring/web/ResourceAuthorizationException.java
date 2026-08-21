@@ -7,6 +7,7 @@ public class ResourceAuthorizationException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 
+  /** Denied resource authorization decision. */
   private final ResourceAuthorizationDecision decision;
 
   /**

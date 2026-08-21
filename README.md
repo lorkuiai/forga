@@ -408,5 +408,31 @@ returns the original SQL unchanged, with no required authorization request conte
 ./gradlew clean check
 ```
 
-GitHub Actions runs the same Gradle check on pull requests targeting `main` or `develop` and on
-pushes to those branches.
+GitHub Actions runs the same Gradle check on pull requests targeting `main` or `develop`.
+
+## Publishing
+
+Every submodule is configured as a Maven publication under group `com.luokuiai.forga`. The default
+version is `1.0.0-SNAPSHOT`; release jobs can override it with `-PreleaseVersion=...`.
+
+Publish to the local Maven repository:
+
+```bash
+./gradlew publishToMavenLocal
+```
+
+Maven Central publishing is handled by `.github/workflows/publish.yml` using the same Vanniktech
+publishing plugin setup as the Liquibase adapter modules:
+
+- pushes to `develop` publish a unique snapshot version;
+- tags matching `vX.Y.Z` publish and release version `X.Y.Z`.
+
+The underlying release command is:
+
+```bash
+./gradlew publishAndReleaseToMavenCentral -PreleaseVersion=1.0.0
+```
+
+Signing and Maven Central credentials are read by the publishing plugin from Gradle properties or
+environment variables. The workflow maps them from `MAVEN_CENTRAL_USERNAME`,
+`MAVEN_CENTRAL_PASSWORD`, `SIGNING_KEY`, and `SIGNING_PASSWORD` repository secrets.
