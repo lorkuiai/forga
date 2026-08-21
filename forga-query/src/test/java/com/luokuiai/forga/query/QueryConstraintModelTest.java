@@ -19,6 +19,12 @@ class QueryConstraintModelTest {
 
   private static final QueryField RELATED_SUBJECT = new QueryField(RELATED, "subject_id");
 
+  private static final ResourceQueryMapping RESOURCE_MAPPING =
+      ResourceQueryMapping.of(RESOURCE, List.of("id", "created_at"));
+
+  private static final ResourceQueryMapping RELATED_MAPPING =
+      ResourceQueryMapping.of(RELATED, List.of("resource_id", "subject_id", "rank", "relation"));
+
   @Test
   void modelsCorrelatedExistenceWithBoundParameter() {
     QueryParameter subject = new QueryParameter("subject", QueryValueType.STRING);
@@ -58,6 +64,33 @@ class QueryConstraintModelTest {
   }
 
   @Test
+  void modelsAuthorizedRowsetListPlan() {
+    QueryParameter subject = new QueryParameter("subject", QueryValueType.STRING);
+    QueryConstraint where =
+        QueryConstraint.predicate(
+            RELATED_MAPPING.field("subject_id"), PredicateOperator.EQUALS, subject);
+    AuthorizedListQuery query =
+        QueryConstraintGenerator.authorizedRowset(
+            RESOURCE_MAPPING,
+            RELATED_MAPPING,
+            "id",
+            "resource_id",
+            where,
+            List.of(new QueryProjection(RELATED_MAPPING.field("relation"), "forga_relation")),
+            List.of(
+                new QueryOrdering(RELATED_MAPPING.field("rank"), QuerySortDirection.DESC),
+                new QueryOrdering(RESOURCE_MAPPING.field("created_at"), QuerySortDirection.DESC)));
+
+    assertThat(query.join().correlations())
+        .containsExactly(
+            new QueryCorrelation(
+                RESOURCE_MAPPING.field("id"), RELATED_MAPPING.field("resource_id")));
+    assertThat(query.projections()).extracting(QueryProjection::alias)
+        .containsExactly("forga_relation");
+    assertThat(query.orderings()).hasSize(2);
+  }
+
+  @Test
   void rejectsInvalidNamesAndArity() {
     assertThatIllegalArgumentException().isThrownBy(() -> new QueryResource("1bad"));
     assertThatIllegalArgumentException().isThrownBy(() -> new QueryField(RESOURCE, "bad name"));
@@ -66,6 +99,13 @@ class QueryConstraintModelTest {
         .isThrownBy(() -> new BooleanConstraint(BooleanOperator.NOT, List.of()));
     assertThatIllegalArgumentException()
         .isThrownBy(() -> new QueryJoin(RESOURCE, RELATED, List.of()));
+    assertThatIllegalArgumentException()
+        .isThrownBy(
+            () ->
+                new AuthorizedRowsetJoin(
+                    RESOURCE_MAPPING,
+                    RELATED_MAPPING,
+                    List.of(new QueryCorrelation(RELATED_SUBJECT, RESOURCE_ID))));
   }
 
   @Test

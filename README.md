@@ -30,6 +30,7 @@ Use Forga when an application needs authorization such as:
 - `forga-mybatis`: MyBatis SQL translation and statement interception helpers.
 - `forga-spring-boot-starter`: opt-in runtime assembly and MyBatis auto-configuration.
 - `forga-scope`: scope switching, active-scope checks, acting context, and scope query helpers.
+- `forga-spring-web`: resource-code annotations and Spring MVC interceptor integration.
 
 ## Design Model
 
@@ -182,6 +183,44 @@ host request -> subject + active scope -> query constraint -> parameterized SQL
 Unknown fields, unsafe identifiers, or unsupported constraint nodes are rejected before SQL
 execution.
 
+For ReBAC list pages, prefer an authorized rowset plan instead of per-row `check` calls. The host
+maps a business resource and an authorization rowset, then Forga generates one SQL statement that
+joins them before filtering, ordering, and pagination:
+
+```text
+business_resource
+JOIN authorized_rowset ON resource.id = authorized_rowset.object_id
+WHERE authorized_rowset.subject_id = #{forga.parameters.subject}
+ORDER BY authorized_rowset.rank DESC, resource.created_at DESC
+LIMIT ...
+```
+
+The authorization rowset can be a host table, view, materialized view, or queryable relation
+projection. It can expose fields such as relation, scope, rank, source, or assignment status.
+Those fields can be selected with stable aliases and used for ordering before pagination:
+
+```java
+AuthorizedListQuery listQuery =
+    QueryConstraintGenerator.authorizedRowset(
+        taskMapping,
+        accessMapping,
+        "id",
+        "object_id",
+        QueryConstraint.predicate(
+            accessMapping.field("subject_id"),
+            PredicateOperator.EQUALS,
+            new QueryParameter("subject", QueryValueType.STRING)),
+        List.of(new QueryProjection(accessMapping.field("relation"), "forga_relation")),
+        List.of(new QueryOrdering(accessMapping.field("rank"), QuerySortDirection.DESC)));
+
+MyBatisAuthorizationBoundary boundary =
+    MyBatisAuthorizationBoundary.list("task-list", listQuery);
+```
+
+This keeps pagination correct because the database filters and sorts the authorized rowset before
+returning a page. It also keeps relationship context available for the UI without loading a page of
+business rows and authorizing each row separately.
+
 ## Scope And Concurrent Roles
 
 `forga-scope` handles applications where one subject can operate under multiple authorization
@@ -262,6 +301,69 @@ ScopedPermissionDecision decision =
 The service first verifies that the subject can enter the active scope, then evaluates the requested
 resource permission.
 
+## Spring Web Resource Annotations
+
+Business systems usually already have a resource catalog and controller permissions. Forga's Spring
+Web integration keeps that shape instead of forcing endpoints to call SDK internals directly.
+
+```java
+public final class AdminResources {
+  public static final String MEETING_VIEW = "rsc:meeting:view";
+  public static final String MEETING_MAINTAIN = "rsc:meeting:maintain";
+
+  private AdminResources() {}
+}
+```
+
+```java
+@RequiresResource(AdminResources.MEETING_VIEW)
+public MeetingDetail getMeeting(String meetingId) {
+  ...
+}
+```
+
+The resource code remains host-defined. The host provides one adapter that maps the code and current
+request context to Forga checks:
+
+```java
+ResourceCheckAdapter adapter =
+    invocation -> {
+      ResourceRule rule = resourceCatalog.require(invocation.resourceCode());
+      CheckDecision decision =
+          evaluator.check(
+              new CheckRequest(
+                  rule.objectRef(invocation),
+                  rule.permission(),
+                  subjectProvider.currentSubject()));
+      return ResourceAuthorizationDecision.from(invocation.resourceCode(), decision);
+    };
+```
+
+Register the service and MVC interceptor in application configuration:
+
+```java
+@Bean
+ResourceAuthorizationService resourceAuthorizationService(ResourceCheckAdapter adapter) {
+  return new ResourceAuthorizationService(adapter);
+}
+
+@Override
+public void addInterceptors(InterceptorRegistry registry) {
+  registry.addInterceptor(new RequiresResourceInterceptor(resourceAuthorizationService));
+}
+```
+
+For service-layer code or non-MVC entry points, use the same facade:
+
+```java
+resourceAuthorizationService.requireResource(AdminResources.MEETING_MAINTAIN);
+```
+
+`@RequiresResource(RequiresResource.NONE)` explicitly marks an endpoint as requiring no resource
+permission. If the module is not registered as an MVC interceptor, annotations have no runtime
+effect. Collection authorization should still use query constraints or MyBatis rowsets so list
+pages are filtered, sorted, and paginated in SQL rather than checked row by row.
+
 ## MyBatis And Spring Integration
 
 `forga-mybatis` can apply translated query constraints to configured MyBatis statements. The host
@@ -306,5 +408,31 @@ returns the original SQL unchanged, with no required authorization request conte
 ./gradlew clean check
 ```
 
-GitHub Actions runs the same Gradle check on pull requests targeting `main` or `develop` and on
-pushes to those branches.
+GitHub Actions runs the same Gradle check on pull requests targeting `main` or `develop`.
+
+## Publishing
+
+Every submodule is configured as a Maven publication under group `com.luokuiai.forga`. The default
+version is `1.0.0-SNAPSHOT`; release jobs can override it with `-PreleaseVersion=...`.
+
+Publish to the local Maven repository:
+
+```bash
+./gradlew publishToMavenLocal
+```
+
+Maven Central publishing is handled by `.github/workflows/publish.yml` using the same Vanniktech
+publishing plugin setup as the Liquibase adapter modules:
+
+- pushes to `develop` publish a unique snapshot version;
+- tags matching `vX.Y.Z` publish and release version `X.Y.Z`.
+
+The underlying release command is:
+
+```bash
+./gradlew publishAndReleaseToMavenCentral -PreleaseVersion=1.0.0
+```
+
+Signing and Maven Central credentials are read by the publishing plugin from Gradle properties or
+environment variables. The workflow maps them from `MAVEN_CENTRAL_USERNAME`,
+`MAVEN_CENTRAL_PASSWORD`, `SIGNING_KEY`, and `SIGNING_PASSWORD` repository secrets.
