@@ -15,10 +15,11 @@ class StandaloneBoundaryTest {
   private static final List<String> MODULES =
       List.of(
           "forga-core",
-          "forga-resolver-api",
           "forga-query",
           "forga-mybatis",
-          "forga-spring-boot-starter");
+          "forga-spring-boot-starter",
+          "forga-scope",
+          "forga-spring-web");
 
   private static final List<String> FORBIDDEN_CORE_IMPORT_PREFIXES =
       List.of(

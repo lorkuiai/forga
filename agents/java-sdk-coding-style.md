@@ -29,8 +29,8 @@
 ### Module Boundaries
 
 - Lower-level modules must not depend on optional framework integrations.
-- `forga-core` owns model, policy, evaluator, limits, and decisions.
-- `forga-resolver-api` owns host resolver contracts and fixtures.
+- `forga-core` owns model, policy, evaluator, limits, decisions, resolver contracts, and resolver
+  contract fixtures.
 - `forga-query` owns typed query constraint structures.
 - `forga-mybatis` owns MyBatis SQL translation/application.
 - `forga-spring-boot-starter` owns opt-in Spring assembly.
