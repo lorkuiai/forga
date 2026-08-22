@@ -12,8 +12,13 @@ to remain absent from a correctly dependency-managed host.
   condition.
 - Make the startup banner follow the same annotation-based enablement contract.
 - Update documentation, specifications, and tests to remove `forga.enabled` as an enablement path.
+- Remove the redundant `ForgaIntegrationProperties` assembly model; annotation-enabled Spring
+  integrations no longer require a separate enablement bean, and direct runtime assembly accepts
+  `EvaluationLimits` explicitly.
 - **BREAKING**: hosts using `forga.enabled=true` must annotate a configuration or application class
   with `@EnableForga`; environment properties can no longer change Forga assembly.
+- **BREAKING**: direct assembler users must replace `ForgaIntegrationProperties` with an explicit
+  `EvaluationLimits` argument.
 - Keep authorization models, resolver ownership, persistence contracts, and disabled query behavior
   unchanged.
 
@@ -33,6 +38,6 @@ None.
 ## Impact
 
 The change affects the public Spring Boot Starter API, all Starter auto-configuration conditions,
-startup banner registration, host setup documentation, and integration tests. It does not affect
-`forga-core`, host relationship storage, policy evaluation semantics, or ordinary business queries
-when Forga is not enabled.
+direct assembler signatures, startup banner registration, host setup documentation, and
+integration tests. It does not affect `forga-core`, host relationship storage, policy evaluation
+semantics, or ordinary business queries when Forga is not enabled.

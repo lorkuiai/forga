@@ -25,31 +25,13 @@ class ForgaMyBatisAutoConfigurationSupportTest {
   private static final QueryResource RESOURCE = new QueryResource("resource");
 
   @Test
-  void disabledIntegrationAssemblesNoInterceptor() {
-    Optional<ForgaMyBatisIntegrationComponents> components =
-        ForgaMyBatisAutoConfigurationSupport.assemble(
-            ForgaIntegrationProperties.disabledDefaults(),
-            registry(),
-            subjectProvider(),
-            Map::of,
-            mappings());
-
-    assertThat(components).isEmpty();
-  }
-
-  @Test
-  void enabledIntegrationAssemblesInterceptorFromGenericBeans() {
+  void assemblesInterceptorFromGenericBeans() {
     AuthorizationAttributesProvider attributes = Map::of;
     AuthenticatedSubjectProvider subjects = subjectProvider();
 
     ForgaMyBatisIntegrationComponents components =
         ForgaMyBatisAutoConfigurationSupport.assemble(
-                ForgaIntegrationProperties.enabledDefaults(),
-                registry(),
-                subjects,
-                attributes,
-                mappings())
-            .orElseThrow();
+            registry(), subjects, attributes, mappings());
 
     assertThat(components.interceptor()).isNotNull();
     assertThat(components.subjects()).isSameAs(subjects);

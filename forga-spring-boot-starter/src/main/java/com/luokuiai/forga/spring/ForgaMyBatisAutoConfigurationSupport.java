@@ -11,7 +11,6 @@ import com.luokuiai.forga.mybatis.MyBatisStatementRegistry;
 import com.luokuiai.forga.query.QueryResource;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Framework-neutral factory used by Spring auto-configuration.
@@ -22,25 +21,19 @@ public final class ForgaMyBatisAutoConfigurationSupport {
   }
 
   /**
-   * Builds MyBatis integration components when enabled.
+   * Builds MyBatis integration components.
    *
-   * @param properties integration properties
    * @param statements statement registry
    * @param subjects subject provider
    * @param attributes request attributes provider
    * @param mappings MyBatis resource mappings
-   * @return components when enabled
+   * @return integration components
    */
-  public static Optional<ForgaMyBatisIntegrationComponents> assemble(
-      ForgaIntegrationProperties properties,
+  public static ForgaMyBatisIntegrationComponents assemble(
       MyBatisStatementRegistry statements,
       AuthenticatedSubjectProvider subjects,
       AuthorizationAttributesProvider attributes,
       Map<QueryResource, MyBatisResourceMapping> mappings) {
-    Objects.requireNonNull(properties, "properties are required");
-    if (!properties.enabled()) {
-      return Optional.empty();
-    }
     Objects.requireNonNull(statements, "statements are required");
     Objects.requireNonNull(subjects, "subjects are required");
     Objects.requireNonNull(attributes, "attributes are required");
@@ -52,8 +45,7 @@ public final class ForgaMyBatisAutoConfigurationSupport {
             attributes,
             new MyBatisConstraintApplicator(translator),
             true);
-    return Optional.of(
-        new ForgaMyBatisIntegrationComponents(
-            new ForgaMyBatisInterceptor(sqlInterceptor), statements, subjects, attributes));
+    return new ForgaMyBatisIntegrationComponents(
+        new ForgaMyBatisInterceptor(sqlInterceptor), statements, subjects, attributes);
   }
 }

@@ -46,11 +46,6 @@ class ForgaEnablementTest {
   static class EnabledConfiguration {
 
     @Bean
-    ForgaIntegrationProperties forgaIntegrationProperties() {
-      return ForgaIntegrationProperties.enabledDefaults();
-    }
-
-    @Bean
     MyBatisStatementRegistry myBatisStatementRegistry() {
       return new MyBatisStatementRegistry(List.of());
     }
