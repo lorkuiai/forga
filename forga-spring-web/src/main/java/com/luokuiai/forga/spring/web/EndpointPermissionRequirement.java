@@ -50,4 +50,23 @@ public final class EndpointPermissionRequirement {
   public boolean isPermitAll() {
     return permission.isEmpty();
   }
+
+  @Override
+  public boolean equals(Object other) {
+    return this == other
+        || other instanceof EndpointPermissionRequirement requirement
+            && permission.equals(requirement.permission);
+  }
+
+  @Override
+  public int hashCode() {
+    return permission.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return permission
+        .map(value -> "EndpointPermissionRequirement[permission=" + value.name() + "]")
+        .orElse("EndpointPermissionRequirement[permitAll]");
+  }
 }
