@@ -52,9 +52,9 @@ class ForgaSpringWebAutoConfigurationTest {
   }
 
   @Test
-  void doesNotAssembleWebIntegrationWhenForgaIsDisabled() {
-    runner(ValidWebConfiguration.class)
-        .withPropertyValues("forga.enabled=false")
+  void legacyPropertyDoesNotAssembleWebIntegration() {
+    runner(DisabledWebConfiguration.class)
+        .withPropertyValues("forga.enabled=true")
         .run(
             context -> {
               assertThat(context).doesNotHaveBean(EndpointPermissionRegistrations.class);
@@ -99,12 +99,12 @@ class ForgaSpringWebAutoConfigurationTest {
             AutoConfigurations.of(
                 ForgaSpringWebAutoConfiguration.class,
                 ForgaPermissionCatalogAutoConfiguration.class))
-        .withUserConfiguration(configuration)
-        .withPropertyValues("forga.enabled=true");
+        .withUserConfiguration(configuration);
   }
 
   @Configuration(proxyBeanMethods = false)
   @EnableWebMvc
+  @EnableForga
   static class ValidWebConfiguration {
 
     static final PermissionDefinition VIEW =
@@ -138,6 +138,7 @@ class ForgaSpringWebAutoConfigurationTest {
 
   @Configuration(proxyBeanMethods = false)
   @EnableWebMvc
+  @EnableForga
   static class CustomInterceptorWebConfiguration {
 
     @Bean
@@ -162,6 +163,7 @@ class ForgaSpringWebAutoConfigurationTest {
 
   @Configuration(proxyBeanMethods = false)
   @EnableWebMvc
+  @EnableForga
   static class InvalidWebConfiguration {
 
     @Bean
@@ -178,6 +180,7 @@ class ForgaSpringWebAutoConfigurationTest {
 
   @Configuration(proxyBeanMethods = false)
   @EnableWebMvc
+  @EnableForga
   static class MissingAuthorizerWebConfiguration {
 
     @Bean
@@ -190,6 +193,15 @@ class ForgaSpringWebAutoConfigurationTest {
       return registry ->
           registry.require(
               VendorOrderController.class, "getOrder", ValidWebConfiguration.VIEW, String.class);
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class DisabledWebConfiguration {
+
+    @Bean
+    EndpointPermissionContributor endpointPermissionContributor() {
+      return registry -> { };
     }
   }
 

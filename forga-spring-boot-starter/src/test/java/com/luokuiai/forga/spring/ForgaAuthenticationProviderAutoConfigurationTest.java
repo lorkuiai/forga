@@ -10,14 +10,15 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Configuration;
 
 class ForgaAuthenticationProviderAutoConfigurationTest {
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
-          .withPropertyValues("forga.enabled=true")
           .withConfiguration(
-              AutoConfigurations.of(ForgaAuthenticationProviderAutoConfiguration.class));
+              AutoConfigurations.of(ForgaAuthenticationProviderAutoConfiguration.class))
+          .withUserConfiguration(EnabledConfiguration.class);
 
   @Test
   void startsWithExactlyOneAuthenticationProvider() {
@@ -65,12 +66,12 @@ class ForgaAuthenticationProviderAutoConfigurationTest {
   @Test
   void failsWhenSaTokenAndSpringSecurityAdaptersAreBothActive() {
     new ApplicationContextRunner()
-        .withPropertyValues("forga.enabled=true")
         .withConfiguration(
             AutoConfigurations.of(
                 ForgaSaTokenAutoConfiguration.class,
                 ForgaSpringSecurityAutoConfiguration.class,
                 ForgaAuthenticationProviderAutoConfiguration.class))
+        .withUserConfiguration(EnabledConfiguration.class)
         .withBean(StpLogic.class, () -> new StpLogic("test"))
         .run(
             context -> {
@@ -80,4 +81,21 @@ class ForgaAuthenticationProviderAutoConfigurationTest {
                       "enabled integration requires exactly one authentication provider, found 2");
             });
   }
+
+  @Test
+  void legacyPropertyDoesNotRequireAuthenticationProvider() {
+    new ApplicationContextRunner()
+        .withPropertyValues("forga.enabled=true")
+        .withConfiguration(
+            AutoConfigurations.of(ForgaAuthenticationProviderAutoConfiguration.class))
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(context).doesNotHaveBean("forgaAuthenticationProviderValidation");
+            });
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @EnableForga
+  static class EnabledConfiguration { }
 }

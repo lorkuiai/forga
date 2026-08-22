@@ -9,14 +9,13 @@ import com.luokuiai.forga.query.QueryResource;
 import java.util.Map;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 
 /**
  * Spring Boot auto-configuration for generic Forga MyBatis authorization.
  */
 @AutoConfiguration
-@ConditionalOnProperty(prefix = "forga", name = "enabled", havingValue = "true")
+@ConditionalOnForgaEnabled
 public class ForgaMyBatisAutoConfiguration {
 
   /**

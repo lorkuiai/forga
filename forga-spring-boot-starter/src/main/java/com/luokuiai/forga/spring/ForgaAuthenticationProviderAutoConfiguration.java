@@ -5,12 +5,11 @@ import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 
 /** Validates that enabled Forga integration has one unambiguous authentication provider. */
 @AutoConfiguration
-@ConditionalOnProperty(prefix = "forga", name = "enabled", havingValue = "true")
+@ConditionalOnForgaEnabled
 public class ForgaAuthenticationProviderAutoConfiguration {
 
   /**

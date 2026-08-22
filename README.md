@@ -438,10 +438,27 @@ Important integration behavior:
 enabled. Applications still provide host-specific resolvers, authorization attributes, active-scope
 providers, and statement mappings.
 
+Enable Forga explicitly on the application composition root:
+
+```java
+import com.luokuiai.forga.spring.EnableForga;
+
+@SpringBootApplication
+@EnableForga
+public class Application {
+  public static void main(String[] args) {
+    SpringApplication.run(Application.class, args);
+  }
+}
+```
+
+`forga.enabled` is not a supported configuration property. Environment properties cannot enable or
+disable Forga integration.
+
 Snapshot migration: `ForgaSubjectProvider` and `ForgaRequestAttributesProvider` moved to the core
 `AuthenticatedSubjectProvider` and `AuthorizationAttributesProvider` contracts. `@RequiresResource`
 and `ResourceAuthorizationService` were removed; use `@RequiresPermission`, `@PermitAll`, or a host
-endpoint resolver.
+endpoint resolver. Property-based enablement was removed; use `@EnableForga` instead.
 
 ## Consistency And Limits
 
@@ -461,8 +478,8 @@ Evaluation and listing enforce configured bounds:
 
 ## Disabled Behavior
 
-The starter is opt-in. When disabled, it assembles no runtime components and the MyBatis applicator
-returns the original SQL unchanged, with no required authorization request context.
+The starter is opt-in. Without `@EnableForga`, it assembles no runtime components and the MyBatis
+applicator returns the original SQL unchanged, with no required authorization request context.
 
 ## Build
 
