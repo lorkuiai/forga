@@ -1,7 +1,8 @@
 # Forga
 
-Forga is an embedded, domain-neutral authorization SDK for Java applications. It evaluates RBAC,
-ReBAC, and ABAC policies over relationships and attributes supplied by the host application.
+Forga (Fine-grained Object-Relation Graph Authorization) is an embedded, domain-neutral
+authorization SDK for Java applications. It supports unified RBAC, ReBAC, and ABAC policy
+evaluation over relationships and attributes supplied by the host application.
 
 Forga is not an identity system, permission-management product, tenant framework, or relationship
 database. Host applications keep their own accounts, business resources, relationship storage, and

@@ -27,3 +27,5 @@ Open only the file relevant to the current question. If a change spans multiple 
 - Public APIs require Javadoc and tests.
 - Run `./gradlew check` before considering implementation complete.
 - Significant changes use OpenSpec under `openspec/changes/`.
+- Before creating or editing a pull request, read `.github/pull_request_template.md` and preserve
+  its required sections and format.
