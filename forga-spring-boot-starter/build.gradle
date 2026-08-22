@@ -20,3 +20,10 @@ dependencies {
   testImplementation project(':forga-sa-token')
   testImplementation project(':forga-spring-security')
 }
+
+tasks.named('processResources') {
+  inputs.property('forgaVersion', project.version)
+  filesMatching('META-INF/forga.version') {
+    expand(forgaVersion: project.version)
+  }
+}
