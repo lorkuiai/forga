@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Configuration;
 
 class ForgaPermissionCatalogAutoConfigurationTest {
 
@@ -28,7 +29,7 @@ class ForgaPermissionCatalogAutoConfigurationTest {
             new PermissionRef("meeting:view"), "View meeting", "meeting");
 
     contextRunner
-        .withPropertyValues("forga.enabled=true")
+        .withUserConfiguration(EnabledConfiguration.class)
         .withBean(PermissionCatalogContributor.class, () -> () -> List.of(permission))
         .withBean(
             PermissionCatalogSynchronizer.class,
@@ -41,9 +42,13 @@ class ForgaPermissionCatalogAutoConfigurationTest {
   }
 
   @Test
-  void assemblesNothingWhenForgaIsDisabled() {
+  void legacyPropertyDoesNotAssembleCatalog() {
     contextRunner
-        .withPropertyValues("forga.enabled=false")
+        .withPropertyValues("forga.enabled=true")
         .run(context -> assertThat(context).doesNotHaveBean(PermissionCatalog.class));
   }
+
+  @Configuration(proxyBeanMethods = false)
+  @EnableForga
+  static class EnabledConfiguration { }
 }

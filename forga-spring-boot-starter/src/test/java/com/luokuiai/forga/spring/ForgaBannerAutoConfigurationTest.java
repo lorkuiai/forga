@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Configuration;
 
 class ForgaBannerAutoConfigurationTest {
 
@@ -15,7 +16,7 @@ class ForgaBannerAutoConfigurationTest {
   @Test
   void registersVersionedBannerWhenForgaIsEnabled() {
     contextRunner
-        .withPropertyValues("forga.enabled=true")
+        .withUserConfiguration(EnabledConfiguration.class)
         .run(
             context -> {
               assertThat(context).hasBean("forgaStartupBanner");
@@ -28,9 +29,13 @@ class ForgaBannerAutoConfigurationTest {
   }
 
   @Test
-  void registersNoBannerWhenForgaIsDisabled() {
+  void legacyPropertyDoesNotRegisterBanner() {
     contextRunner
-        .withPropertyValues("forga.enabled=false")
+        .withPropertyValues("forga.enabled=true")
         .run(context -> assertThat(context).doesNotHaveBean("forgaStartupBanner"));
   }
+
+  @Configuration(proxyBeanMethods = false)
+  @EnableForga
+  static class EnabledConfiguration { }
 }
