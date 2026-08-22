@@ -1,5 +1,6 @@
 package com.luokuiai.forga.spring;
 
+import com.luokuiai.forga.core.eval.EvaluationLimits;
 import com.luokuiai.forga.core.model.RelationRef;
 import com.luokuiai.forga.core.policy.CaveatExpression;
 import com.luokuiai.forga.core.policy.CompiledPolicy;
@@ -16,48 +17,41 @@ import com.luokuiai.forga.resolver.ResolverRegistry;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
-/**
- * Assembles integration components after opt-in configuration validation.
- */
+/** Assembles integration components after required input validation. */
 public final class ForgaRuntimeAssembler {
 
   private ForgaRuntimeAssembler() {
   }
 
   /**
-   * Assembles enabled runtime components or returns empty when disabled.
+   * Assembles runtime components.
    *
-   * @param properties integration properties
    * @param policy compiled policy
    * @param resolvers resolver registry
+   * @param limits evaluation limits
    * @param mappings MyBatis resource mappings
-   * @return assembled components when enabled
+   * @return assembled components
    */
-  public static Optional<ForgaRuntimeComponents> assemble(
-      ForgaIntegrationProperties properties,
+  public static ForgaRuntimeComponents assemble(
       CompiledPolicy policy,
       ResolverRegistry resolvers,
-      Map<QueryResource, MyBatisResourceMapping> mappings) {
-    Objects.requireNonNull(properties, "properties are required");
-    if (!properties.enabled()) {
-      return Optional.empty();
-    }
+      EvaluationLimits limits,
+    Map<QueryResource, MyBatisResourceMapping> mappings) {
     if (policy == null) {
-      throw new ForgaRuntimeException("enabled integration requires a policy");
+      throw new ForgaRuntimeException("integration requires a policy");
     }
     if (resolvers == null) {
-      throw new ForgaRuntimeException("enabled integration requires resolver registry");
+      throw new ForgaRuntimeException("integration requires resolver registry");
     }
+    Objects.requireNonNull(limits, "limits are required");
     validateResolvers(policy, resolvers);
-    return Optional.of(
-        new ForgaRuntimeComponents(
-            policy, resolvers, properties.limits(), new MyBatisConstraintTranslator(mappings)));
+    return new ForgaRuntimeComponents(
+        policy, resolvers, limits, new MyBatisConstraintTranslator(mappings));
   }
 
-  private static void validateResolvers(CompiledPolicy policy, ResolverRegistry resolvers) {
+  static void validateResolvers(CompiledPolicy policy, ResolverRegistry resolvers) {
     for (RelationRef relation : relations(policy)) {
       if (resolvers.findForward(relation).isEmpty()) {
         throw new ForgaRuntimeException(

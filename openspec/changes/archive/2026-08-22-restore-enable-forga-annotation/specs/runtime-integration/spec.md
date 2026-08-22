@@ -3,14 +3,17 @@
 ### Requirement: Opt-in runtime assembly
 Framework integrations MUST register authorization components only when a host composition root
 explicitly declares `@EnableForga`. Environment properties, including `forga.enabled`, MUST NOT
-enable or disable Forga assembly. Enabled integration MUST validate policies, resolver capabilities,
-authentication providers, and duplicate registrations before serving requests.
+enable or disable Forga assembly. Annotation-enabled integration MUST NOT require a separate runtime
+properties bean carrying another enablement flag. Enabled integration MUST validate policies,
+resolver capabilities, authentication providers, and duplicate registrations before serving
+requests.
 
 #### Scenario: Composition root enables Forga
 - **WHEN** a host configuration class declares `@EnableForga`
 - **THEN** Forga integration components and the versioned startup banner are registered
 - **AND** incomplete required infrastructure causes application startup to fail with a precise
   configuration error
+- **AND** no separate integration enablement properties bean is required
 
 #### Scenario: Legacy property attempts to enable Forga
 - **WHEN** the Starter is present and `forga.enabled=true` is configured without `@EnableForga`

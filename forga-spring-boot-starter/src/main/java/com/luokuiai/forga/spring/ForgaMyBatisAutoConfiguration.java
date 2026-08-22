@@ -21,7 +21,6 @@ public class ForgaMyBatisAutoConfiguration {
   /**
    * Registers the Forga MyBatis interceptor when integration is enabled.
    *
-   * @param properties integration properties
    * @param statements statement registry
    * @param subjects subject provider
    * @param attributes request attributes provider
@@ -31,14 +30,12 @@ public class ForgaMyBatisAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ForgaMyBatisInterceptor forgaMyBatisInterceptor(
-      ForgaIntegrationProperties properties,
       MyBatisStatementRegistry statements,
       AuthenticatedSubjectProvider subjects,
       AuthorizationAttributesProvider attributes,
       Map<QueryResource, MyBatisResourceMapping> mappings) {
     return ForgaMyBatisAutoConfigurationSupport.assemble(
-            properties, statements, subjects, attributes, mappings)
-        .orElseThrow(() -> new ForgaRuntimeException("Forga MyBatis integration is disabled"))
+            statements, subjects, attributes, mappings)
         .interceptor();
   }
 }

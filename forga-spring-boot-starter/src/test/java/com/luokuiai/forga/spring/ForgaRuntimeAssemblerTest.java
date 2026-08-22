@@ -35,32 +35,32 @@ class ForgaRuntimeAssemblerTest {
   private static final PermissionRef VIEW = new PermissionRef("view");
 
   @Test
-  void disabledConfigurationAssemblesNoComponents() {
-    Optional<ForgaRuntimeComponents> components =
-        ForgaRuntimeAssembler.assemble(
-            ForgaIntegrationProperties.disabledDefaults(), null, null, Map.of());
-
-    assertThat(components).isEmpty();
-  }
-
-  @Test
-  void enabledConfigurationRequiresPolicyAndResolvers() {
+  void assemblyRequiresPolicyAndResolvers() {
     assertThatExceptionOfType(ForgaRuntimeException.class)
         .isThrownBy(
             () ->
                 ForgaRuntimeAssembler.assemble(
-                    ForgaIntegrationProperties.enabledDefaults(), null, null, Map.of()))
+                    null, null, EvaluationLimits.defaults(), Map.of()))
         .withMessageContaining("policy");
     assertThatExceptionOfType(ForgaRuntimeException.class)
         .isThrownBy(
             () ->
                 ForgaRuntimeAssembler.assemble(
-                    ForgaIntegrationProperties.enabledDefaults(), policy(), null, Map.of()))
+                    policy(), null, EvaluationLimits.defaults(), Map.of()))
         .withMessageContaining("resolver registry");
   }
 
   @Test
-  void enabledConfigurationRequiresReverseCapability() {
+  void assemblyRequiresEvaluationLimits() {
+    ResolverRegistry resolvers = new ResolverRegistry(List.of());
+
+    assertThatExceptionOfType(NullPointerException.class)
+        .isThrownBy(() -> ForgaRuntimeAssembler.assemble(policy(), resolvers, null, Map.of()))
+        .withMessage("limits are required");
+  }
+
+  @Test
+  void assemblyRequiresReverseCapability() {
     ResolverRegistry resolvers =
         new ResolverRegistry(List.of(new TestResolver(Set.of(VIEWER), Set.of())));
 
@@ -68,21 +68,20 @@ class ForgaRuntimeAssemblerTest {
         .isThrownBy(
             () ->
                 ForgaRuntimeAssembler.assemble(
-                    ForgaIntegrationProperties.enabledDefaults(), policy(), resolvers, Map.of()))
+                    policy(), resolvers, EvaluationLimits.defaults(), Map.of()))
         .withMessageContaining("missing reverse resolver");
   }
 
   @Test
-  void enabledConfigurationBuildsComponentsWhenCapabilitiesMatch() {
+  void assemblyBuildsComponentsWhenCapabilitiesMatch() {
     ResolverRegistry resolvers =
         new ResolverRegistry(List.of(new TestResolver(Set.of(VIEWER), Set.of(VIEWER))));
 
-    Optional<ForgaRuntimeComponents> components =
-        ForgaRuntimeAssembler.assemble(
-            ForgaIntegrationProperties.enabledDefaults(), policy(), resolvers, Map.of());
+    EvaluationLimits limits = EvaluationLimits.defaults();
+    ForgaRuntimeComponents components =
+        ForgaRuntimeAssembler.assemble(policy(), resolvers, limits, Map.of());
 
-    assertThat(components).isPresent();
-    assertThat(components.orElseThrow().limits()).isEqualTo(EvaluationLimits.defaults());
+    assertThat(components.limits()).isSameAs(limits);
   }
 
   @Test

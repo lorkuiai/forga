@@ -17,3 +17,4 @@ decision.
 - **WHEN** a host composition root declares `@EnableForga` and required MyBatis infrastructure is
   complete
 - **THEN** the Forga MyBatis authorization interceptor is registered
+- **AND** registration does not require a separate integration properties bean

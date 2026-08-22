@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 @AutoConfiguration(
     after = {
       ForgaAuthenticationProviderAutoConfiguration.class,
+      ForgaEvaluatorAutoConfiguration.class,
       ForgaMyBatisAutoConfiguration.class,
       ForgaPermissionCatalogAutoConfiguration.class,
       ForgaSpringWebAutoConfiguration.class

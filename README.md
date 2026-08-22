@@ -142,6 +142,15 @@ RelationshipLookup relationshipLookup = requests -> ...;
 ObjectListingLookup objectListingLookup = requests -> ...;
 ```
 
+Reusable adapters connect a resolver registry to both evaluator lookup contracts:
+
+```java
+RelationshipLookup relationshipLookup =
+    new ResolverRegistryRelationshipLookup(registry);
+ObjectListingLookup objectListingLookup =
+    new ResolverRegistryObjectListingLookup(registry);
+```
+
 Forward resolution powers `check` and `bulkCheck`. Reverse resolution powers `listObjects`.
 Attribute resolution is used for caveats and allowlisted query mappings.
 
@@ -451,6 +460,19 @@ public class Application {
   }
 }
 ```
+
+An enabled Spring application provides one `CompiledPolicy` Bean and its
+`RelationshipResolver` Beans. The Starter automatically assembles:
+
+- `ResolverRegistry`
+- `RelationshipLookup` and `ObjectListingLookup`
+- `EvaluationLimits.defaults()`
+- `AuthorizationEvaluator`
+
+Each default uses `@ConditionalOnMissingBean`, so hosts can replace individual lookups, limits, or
+the evaluator. A host `CaveatEvaluator` Bean is applied automatically when present. Spring Web
+endpoint-to-object mapping remains host-owned through `EndpointPermissionAuthorizer`, which can
+inject the assembled evaluator.
 
 `forga.enabled` is not a supported configuration property. Environment properties cannot enable or
 disable Forga integration.

@@ -1,5 +1,6 @@
 com.luokuiai.forga.spring.ForgaAuthenticationProviderAutoConfiguration
 com.luokuiai.forga.spring.ForgaBannerAutoConfiguration
+com.luokuiai.forga.spring.ForgaEvaluatorAutoConfiguration
 com.luokuiai.forga.spring.ForgaMyBatisAutoConfiguration
 com.luokuiai.forga.spring.ForgaPermissionCatalogAutoConfiguration
 com.luokuiai.forga.spring.ForgaSpringWebAutoConfiguration

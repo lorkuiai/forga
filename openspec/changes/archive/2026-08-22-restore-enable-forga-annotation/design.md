@@ -20,7 +20,6 @@ and the startup banner, must observe one enablement signal.
 
 - Change policy evaluation, resolver contracts, query translation, or relationship ownership.
 - Add component scanning or import host-specific configuration.
-- Remove the programmatic `ForgaIntegrationProperties` assembly model in this change.
 - Change collection evaluation, pagination, or traversal limits.
 
 ## Decisions
@@ -44,12 +43,16 @@ standard auto-configuration discovery remains responsible for loading the option
 The alternative of repeating a custom condition on each class is rejected because enablement
 semantics could drift again.
 
-### Keep programmatic assembly separate
+### Remove the duplicate programmatic enablement model
 
-`ForgaIntegrationProperties` remains available to direct assembler users. Its `enabled` value does
-not activate Spring Boot auto-configuration; only `@EnableForga` does. If annotation-enabled
-assembly receives incomplete or internally disabled runtime inputs, existing fail-fast behavior is
-preserved rather than silently degrading.
+`@EnableForga` is the only Spring integration enablement signal, so annotation-enabled assembly does
+not require a second bean carrying an `enabled` flag. `ForgaIntegrationProperties` is removed.
+Direct runtime assembly accepts `EvaluationLimits` explicitly and always assembles or fails fast;
+it no longer returns an empty result for a second, programmatic disabled state.
+
+The alternative of retaining the type as a generic settings container is rejected because its
+Spring-oriented name implies environment binding, while its enablement flag duplicates the marker
+annotation. Evaluation bounds already have the dedicated `EvaluationLimits` value type.
 
 ### Preserve persistence and evaluation behavior
 
@@ -73,8 +76,9 @@ does not introduce N+1 access or unbounded traversal.
 
 1. Add `@EnableForga` to the host Spring Boot application or configuration class.
 2. Remove `forga.enabled` from application files and deployment environment variables.
-3. Upgrade to the corrected Forga Snapshot and restart.
-4. Verify the versioned Forga banner and required infrastructure validation at startup.
+3. Replace direct assembler `ForgaIntegrationProperties` arguments with `EvaluationLimits`.
+4. Upgrade to the corrected Forga Snapshot and restart.
+5. Verify the versioned Forga banner and required infrastructure validation at startup.
 
 Rollback requires removing `@EnableForga` and returning to the previous artifact version; no data
 migration is involved.
