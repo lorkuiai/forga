@@ -355,8 +355,39 @@ public MeetingDetail getMeeting(String meetingId) {
 ```
 
 Public handlers use Jakarta `@PermitAll`. An unannotated handler is unresolved and fails closed by
-default. Hosts that already have permission annotations or centralized route metadata implement
-`EndpointPermissionResolver` instead of changing controllers.
+default.
+
+For compiled SDK controllers or other handlers that the host cannot annotate, contribute exact
+controller method registrations:
+
+```java
+@Bean
+EndpointPermissionContributor vendorSdkPermissions() {
+  PermissionDefinition view =
+      new PermissionDefinition(
+          new PermissionRef("vendor:order:view"),
+          "View vendor order",
+          "vendor-sdk");
+
+  return registry ->
+      registry.require(
+          VendorOrderController.class,
+          "getOrder",
+          view,
+          String.class);
+}
+```
+
+The controller type, method name, and parameter types identify one exact handler and disambiguate
+overloads. Startup fails when the method is missing, is not a Spring MVC handler, or conflicts with
+annotation metadata. Required permission definitions enter the ordinary `PermissionCatalog`
+automatically; permit-all registrations add no catalog entry.
+
+When Forga is enabled and endpoint contributors plus an `EndpointPermissionAuthorizer` are present,
+the Spring Boot Starter compiles the registrations and installs the MVC interceptor automatically.
+Existing annotation-only integrations may continue registering the interceptor directly. Hosts
+with request-dependent metadata can still implement `EndpointPermissionResolver`; its result is
+composed with annotations and registrations, and conflicting results fail closed.
 
 The host authorizer maps the resolved permission and request context into Forga checks:
 
@@ -370,9 +401,10 @@ EndpointPermissionInterceptor interceptor =
         authorizer);
 ```
 
-Register the interceptor once in Spring MVC configuration. Controllers, services, and mappers never
-call Forga authorization methods explicitly. Collection authorization remains in MyBatis query
-constraints so filtering, sorting, and pagination happen in SQL.
+For manual annotation-only integration, register the interceptor once in Spring MVC configuration.
+Controllers, services, and mappers never call Forga authorization methods explicitly. Collection
+authorization remains in MyBatis query constraints so filtering, sorting, and pagination happen in
+SQL.
 
 ## Authentication Adapters
 

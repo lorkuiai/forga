@@ -4,10 +4,17 @@ dependencies {
   api project(':forga-mybatis')
   api project(':forga-spring-web')
   compileOnly "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
+  compileOnly "org.springframework:spring-webmvc:${springFrameworkVersion}"
+  compileOnly 'jakarta.annotation:jakarta.annotation-api:3.0.0'
+  compileOnly 'jakarta.servlet:jakarta.servlet-api:6.0.0'
   compileOnly "com.baomidou:mybatis-plus-extension:${mybatisPlusVersion}"
   testImplementation "com.baomidou:mybatis-plus-extension:${mybatisPlusVersion}"
   testImplementation "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
   testImplementation "org.springframework.boot:spring-boot-test:${springBootVersion}"
+  testImplementation "org.springframework:spring-test:${springFrameworkVersion}"
+  testImplementation "org.springframework:spring-webmvc:${springFrameworkVersion}"
+  testImplementation 'jakarta.annotation:jakarta.annotation-api:3.0.0'
+  testImplementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
   testImplementation "cn.dev33:sa-token-core:${saTokenVersion}"
   testImplementation "org.springframework.security:spring-security-core:${springSecurityVersion}"
   testImplementation project(':forga-sa-token')

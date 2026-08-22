@@ -27,8 +27,16 @@ public final class EndpointAuthorizationException extends RuntimeException {
    * @return unresolved-endpoint exception
    */
   public static EndpointAuthorizationException unresolved() {
-    return new EndpointAuthorizationException(
-        "ENDPOINT_PERMISSION_UNRESOLVED", Optional.empty());
+    return new EndpointAuthorizationException("ENDPOINT_PERMISSION_UNRESOLVED", Optional.empty());
+  }
+
+  /**
+   * Creates a conflicting endpoint metadata denial.
+   *
+   * @return conflicting-metadata exception
+   */
+  public static EndpointAuthorizationException conflictingMetadata() {
+    return new EndpointAuthorizationException("ENDPOINT_PERMISSION_CONFLICT", Optional.empty());
   }
 
   /**

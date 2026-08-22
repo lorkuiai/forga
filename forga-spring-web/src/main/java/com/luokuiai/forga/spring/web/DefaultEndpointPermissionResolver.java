@@ -14,6 +14,10 @@ public final class DefaultEndpointPermissionResolver implements EndpointPermissi
   @Override
   public Optional<EndpointPermissionRequirement> resolve(
       HandlerMethod handlerMethod, HttpServletRequest request) {
+    return resolve(handlerMethod);
+  }
+
+  static Optional<EndpointPermissionRequirement> resolve(HandlerMethod handlerMethod) {
     Optional<EndpointPermissionRequirement> method = resolveElement(handlerMethod.getMethod());
     if (method.isPresent()) {
       return method;
